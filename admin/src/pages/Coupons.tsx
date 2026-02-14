@@ -22,7 +22,7 @@ export default function Coupons() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const data = {
+        const rawData = {
             code: form.code.toUpperCase(),
             discountPercent: Number(form.discountPercent),
             maxDiscount: form.maxDiscount ? Number(form.maxDiscount) : undefined,
@@ -34,10 +34,15 @@ export default function Coupons() {
             description: form.description,
             isActive: true,
         };
+
+        const data = Object.fromEntries(
+            Object.entries(rawData).filter(([, v]) => v !== undefined)
+        );
+
         if (editCoupon) {
-            await updateDoc(doc(db, 'coupons', editCoupon.id), data);
+            await updateDoc(doc(db, 'coupons', editCoupon.id), data as any);
         } else {
-            await addDoc(collection(db, 'coupons'), data);
+            await addDoc(collection(db, 'coupons'), data as any);
         }
         resetForm();
     };
