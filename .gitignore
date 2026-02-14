@@ -2,3 +2,4 @@ node_modules/
 .env
 mobile/.env
 mobile/google-services.json
+google-services.json

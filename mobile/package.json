@@ -19,6 +19,8 @@
     "@react-navigation/native": "^6.1.0",
     "@react-navigation/native-stack": "^6.9.0",
     "@shopify/flash-list": "1.6.4",
+    "@types/react": "~18.2.79",
+    "@types/react-dom": "~18.2.25",
     "expo": "~51.0.0",
     "expo-constants": "~16.0.0",
     "expo-font": "~12.0.0",
@@ -26,7 +28,7 @@
     "expo-linear-gradient": "~13.0.0",
     "expo-linking": "~6.3.0",
     "expo-location": "~17.0.0",
-    "expo-modules-core": "^3.0.29",
+    "expo-modules-core": "~1.12.26",
     "expo-notifications": "~0.28.0",
     "expo-router": "~3.5.0",
     "expo-splash-screen": "~0.27.0",
@@ -35,7 +37,7 @@
     "firebase": "^10.12.0",
     "lucide-react-native": "^0.563.0",
     "react": "18.2.0",
-    "react-dom": "^18.2.0",
+    "react-dom": "18.2.0",
     "react-native": "^0.74.5",
     "react-native-gesture-handler": "~2.16.0",
     "react-native-maps": "1.14.0",
@@ -50,7 +52,6 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/node": "^25.2.3",
-    "@types/react": "~18.2.45",
     "typescript": "~5.3.3"
   },
   "private": true
