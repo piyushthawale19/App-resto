@@ -9,7 +9,6 @@ import DeliveryBoys from './pages/DeliveryBoys';
 import LiveTracking from './pages/LiveTracking';
 import Offers from './pages/Offers';
 import Coupons from './pages/Coupons';
-import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
 
@@ -32,7 +31,6 @@ function AppRoutes() {
                 <Route path="live-tracking" element={<LiveTracking />} />
                 <Route path="offers" element={<Offers />} />
                 <Route path="coupons" element={<Coupons />} />
-                <Route path="users" element={<Users />} />
                 <Route path="settings" element={<Settings />} />
             </Route>
         </Routes>

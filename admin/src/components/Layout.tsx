@@ -14,7 +14,6 @@ const NAV_ITEMS = [
     { to: '/live-tracking', icon: MapPin, label: 'Live Tracking', roles: ['super_admin', 'delivery_admin'] },
     { to: '/offers', icon: Tag, label: 'Offers', roles: ['super_admin'] },
     { to: '/coupons', icon: Ticket, label: 'Coupons', roles: ['super_admin'] },
-    { to: '/users', icon: UsersIcon, label: 'Users', roles: ['super_admin'] },
     { to: '/settings', icon: Settings, label: 'Settings', roles: ['super_admin'] },
 ];
 
