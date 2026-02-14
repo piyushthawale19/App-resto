@@ -108,8 +108,8 @@ export default function LoginScreen() {
                         activeOpacity={0.8}
                     >
                         {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
+                                <ActivityIndicator color={Colors.primary.maroon} />
+                            ) : (
                             <>
                                 <Ionicons name="logo-google" size={24} color="#fff" />
                                 <Text style={styles.signInButtonText}>Continue with Google</Text>

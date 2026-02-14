@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Category } from '../types';
 import { Plus, Trash2, Edit, X, ArrowUp, ArrowDown } from 'lucide-react';
@@ -49,7 +49,7 @@ export default function Categories() {
         } else {
             // Auto-assign order if not provided
             const maxOrder = categories.length > 0 
-                ? Math.max(...categories.map(c => c.order || 0))
+                ? Math.max(...categories.map(c => c.order ?? 0))
                 : 0;
             data.order = maxOrder + 1;
         }
@@ -73,7 +73,7 @@ export default function Categories() {
             name: cat.name,
             imageUrl: cat.imageUrl || '',
             icon: cat.icon || '',
-            order: cat.order ? String(cat.order) : '',
+            order: String(cat.order ?? ''),
         });
         setEditCategory(cat);
         setShowForm(true);
@@ -93,12 +93,16 @@ export default function Categories() {
         if (targetIndex < 0 || targetIndex >= categories.length) return;
 
         const targetCategory = categories[targetIndex];
-        const currentOrder = category.order || 0;
-        const targetOrder = targetCategory.order || 0;
+        const currentOrder = category.order ?? 0;
+        const targetOrder = targetCategory.order ?? 0;
 
-        // Swap orders
-        await updateDoc(doc(db, 'categories', category.id), { order: targetOrder });
-        await updateDoc(doc(db, 'categories', targetCategory.id), { order: currentOrder });
+        // Swap orders using a single atomic batch commit
+        const docRefA = doc(db, 'categories', category.id);
+        const docRefB = doc(db, 'categories', targetCategory.id);
+        const batch = writeBatch(db);
+        batch.update(docRefA, { order: targetOrder });
+        batch.update(docRefB, { order: currentOrder });
+        await batch.commit();
     };
 
     return (
@@ -185,7 +189,7 @@ export default function Categories() {
                                 <tr key={cat.id} className="border-b last:border-0 hover:bg-gray-50">
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm font-medium text-gray-600">{cat.order || index + 1}</span>
+                                            <span className="text-sm font-medium text-gray-600">{cat.order ?? index + 1}</span>
                                             <div className="flex flex-col gap-1">
                                                 <button
                                                     onClick={() => moveOrder(cat, 'up')}

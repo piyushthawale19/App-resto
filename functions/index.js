@@ -247,3 +247,53 @@ exports.setAdminRole = functions.https.onCall(async (data, context) => {
 
   return { success: true };
 });
+
+// ===== CREATE ORDER WITH COUPON ATOMICALLY =====
+exports.createOrder = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+
+  const order = data?.order;
+  if (!order) throw new functions.https.HttpsError('invalid-argument', 'Order data required');
+
+  const couponCode = order.couponCode;
+
+  try {
+    // If couponCode provided, resolve coupon doc reference
+    let couponRef = null;
+    if (couponCode) {
+      const couponQ = await db.collection('coupons').where('code', '==', couponCode).limit(1).get();
+      if (couponQ.empty) {
+        throw new functions.https.HttpsError('not-found', 'Coupon not found');
+      }
+      couponRef = couponQ.docs[0].ref;
+    }
+
+    const result = await db.runTransaction(async (tx) => {
+      if (couponRef) {
+        const snap = await tx.get(couponRef);
+        if (!snap.exists) throw new functions.https.HttpsError('not-found', 'Coupon not found');
+        const data = snap.data();
+        const usedCount = data.usedCount || 0;
+        const usageLimit = data.usageLimit || 0;
+        if (usedCount >= usageLimit) {
+          throw new functions.https.HttpsError('failed-precondition', 'Coupon usage limit reached');
+        }
+        tx.update(couponRef, { usedCount: admin.firestore.FieldValue.increment(1) });
+      }
+
+      const orderRef = db.collection('orders').doc();
+      const serverOrder = {
+        ...order,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      tx.set(orderRef, serverOrder);
+      return orderRef.id;
+    });
+
+    return { orderId: result };
+  } catch (error) {
+    console.error('createOrder error:', error);
+    if (error instanceof functions.https.HttpsError) throw error;
+    throw new functions.https.HttpsError('internal', 'Failed to create order');
+  }
+});

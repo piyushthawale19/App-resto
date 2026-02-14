@@ -44,6 +44,7 @@ import { FontSize, FontWeight } from '../../src/constants/typography';
 // Data - Now using Firebase synced data from AppContext
 
 import type { Restaurant } from '../../src/types/restaurant';
+import type { Product } from '../../src/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -104,22 +105,30 @@ export default function HomeScreen() {
             }
             categoryMap.get(cat)!.push(product);
         });
-        
-        // Create restaurant-like items from categories
-        return Array.from(categoryMap.entries()).map(([category, prods]) => ({
-            id: `rest-${category}`,
-            name: category,
-            imageUrl: prods[0]?.imageUrl || '',
-            cuisines: [category],
-            rating: 4.0,
-            ratingCount: '100+',
-            deliveryTime: '20-30 mins',
-            distance: '1.5 km',
-            priceForOne: Math.round(prods.reduce((sum, p) => sum + (p.offerPrice || p.price), 0) / prods.length),
-            isFeatured: false,
-            tags: [category],
-            products: prods,
-        } as Restaurant & { products: Product[] }));
+
+        // Create restaurant-like items from categories. Compute metadata from products
+        return Array.from(categoryMap.entries()).map(([category, prods]) => {
+            const ratings = prods.map(p => p.rating).filter((r): r is number => typeof r === 'number');
+            const avgRating = ratings.length ? Number((ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)) : 0;
+            const totalReviews = prods.reduce((sum, p) => sum + (p.reviewCount ?? 0), 0);
+            const prepTimes = prods.map(p => p.preparationTime).filter((t): t is number => typeof t === 'number');
+            const avgPrep = prepTimes.length ? Math.round(prepTimes.reduce((a, b) => a + b, 0) / prepTimes.length) : null;
+
+            return ({
+                id: `rest-${category}`,
+                name: category,
+                imageUrl: prods[0]?.imageUrl || '',
+                cuisines: [category],
+                rating: avgRating, // computed from product ratings (0 if none)
+                ratingCount: totalReviews > 0 ? String(totalReviews) : '—',
+                deliveryTime: avgPrep ? `${avgPrep} mins` : '—',
+                distance: '—',
+                priceForOne: Math.round(prods.reduce((sum, p) => sum + (p.offerPrice ?? p.price), 0) / prods.length),
+                isFeatured: false,
+                tags: [category],
+                products: prods,
+            } as Restaurant & { products: Product[] });
+        });
     }, [products]);
 
     // ─── Filter restaurants ───

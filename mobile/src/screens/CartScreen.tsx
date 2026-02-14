@@ -41,7 +41,7 @@ export const CartScreen = () => {
     const deliveryFee = settings?.deliveryFee ?? 0;
     const freeDeliveryAbove = settings?.freeDeliveryAbove ?? 0;
     const isFreeDelivery = cartTotal >= freeDeliveryAbove;
-    const finalAmount = cartTotal + (isFreeDelivery ? 0 : deliveryFee) - discount;
+    const finalAmount = Math.max(0, cartTotal + (isFreeDelivery ? 0 : deliveryFee) - discount);
 
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) {

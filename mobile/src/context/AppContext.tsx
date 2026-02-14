@@ -9,7 +9,8 @@ import {
     orderBy,
     where,
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db, default as firebaseApp } from '../config/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Product, CartItem, Order, Offer, Category, AppSettings, Coupon } from '../types';
 import { useAuth } from './AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -307,11 +308,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const placeOrder = async (orderData: Partial<Order>): Promise<string | null> => {
         if (!user || cart.length === 0) return null;
 
-        const deliveryFee = settings?.deliveryFee ?? 0;
-        const freeDeliveryAbove = settings?.freeDeliveryAbove ?? 0;
-        const isFreeDelivery = cartTotal >= freeDeliveryAbove;
-        const total = cartTotal;
-        const finalAmount = total + (isFreeDelivery ? 0 : deliveryFee) - (orderData.discount || 0);
+            const deliveryFee = settings?.deliveryFee ?? 0;
+            const freeDeliveryAbove = settings?.freeDeliveryAbove ?? 0;
+            const isFreeDelivery = cartTotal >= freeDeliveryAbove;
+            const total = cartTotal;
+            const finalAmount = Math.max(0, total + (isFreeDelivery ? 0 : deliveryFee) - (orderData.discount || 0));
 
         const newOrder: Omit<Order, 'id'> = {
             userId: user.uid,
@@ -334,12 +335,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         };
 
         try {
-            const docRef = await addDoc(collection(db, 'orders'), newOrder);
-            clearCart();
-            return docRef.id;
+            // Use a callable Cloud Function to atomically apply coupon usage and create order
+            const funcs = getFunctions(firebaseApp);
+            const createOrder = httpsCallable(funcs, 'createOrder');
+            const res = await createOrder({ order: newOrder });
+            const orderId = res.data?.orderId || null;
+            if (orderId) clearCart();
+            return orderId;
         } catch (error) {
-            console.error('Error placing order:', error);
-            return null;
+            console.error('Error placing order via cloud function, falling back to direct write:', error);
+            // Fallback: write order directly (no coupon increment) to avoid losing the order flow
+            try {
+                const docRef = await addDoc(collection(db, 'orders'), newOrder);
+                clearCart();
+                return docRef.id;
+            } catch (err) {
+                console.error('Fallback order creation failed:', err);
+                return null;
+            }
         }
     };
 

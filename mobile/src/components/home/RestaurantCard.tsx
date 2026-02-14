@@ -13,6 +13,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing, BorderRadius, Shadow } from '../../constants/spacing';
 import { FontSize, FontWeight } from '../../constants/typography';
 import type { Restaurant } from '../../types/restaurant';
+import type { Product } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_GAP = Spacing.md;
@@ -20,10 +21,10 @@ const CARD_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - CARD_GAP) / 2;
 const CARD_IMAGE_HEIGHT = 140;
 
 interface RestaurantCardProps {
-    restaurant: Restaurant & { products?: any[] };
+    restaurant: Restaurant & { products?: Product[] };
     onPress: (restaurant: Restaurant) => void;
     onBookmark?: (restaurant: Restaurant) => void;
-    onAddToCart?: (product: any) => void;
+    onAddToCart?: (product: Product) => void;
     variant?: 'grid' | 'featured';
 }
 
@@ -144,16 +145,16 @@ const RestaurantCardComponent = ({
                 {!isFeatured && restaurant.products && restaurant.products.length > 0 && onAddToCart && (
                     <Pressable
                         style={styles.addToCartBtn}
-                        onPress={(e) => {
-                            e.stopPropagation();
-                            // Add first product or show product selection
-                            if (restaurant.products && restaurant.products.length === 1) {
-                                onAddToCart(restaurant.products[0]);
-                            } else if (restaurant.products && restaurant.products.length > 1) {
-                                // If multiple products, navigate to restaurant detail or show menu
-                                onPress(restaurant);
-                            }
-                        }}
+                                onPress={(e) => {
+                                    e.stopPropagation?.();
+                                    // Add first product or show product selection
+                                    if (restaurant.products && restaurant.products.length === 1) {
+                                        onAddToCart && onAddToCart(restaurant.products[0]);
+                                    } else if (restaurant.products && restaurant.products.length > 1) {
+                                        // If multiple products, navigate to restaurant detail or show menu
+                                        onPress(restaurant);
+                                    }
+                                }}
                     >
                         <Ionicons name="add" size={16} color={Colors.textWhite} />
                         <Text style={styles.addToCartText}>Add</Text>
