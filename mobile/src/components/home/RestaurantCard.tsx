@@ -13,6 +13,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing, BorderRadius, Shadow } from '../../constants/spacing';
 import { FontSize, FontWeight } from '../../constants/typography';
 import type { Restaurant } from '../../types/restaurant';
+import type { Product } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_GAP = Spacing.md;
@@ -20,9 +21,10 @@ const CARD_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - CARD_GAP) / 2;
 const CARD_IMAGE_HEIGHT = 140;
 
 interface RestaurantCardProps {
-    restaurant: Restaurant;
+    restaurant: Restaurant & { products?: Product[] };
     onPress: (restaurant: Restaurant) => void;
     onBookmark?: (restaurant: Restaurant) => void;
+    onAddToCart?: (product: Product) => void;
     variant?: 'grid' | 'featured';
 }
 
@@ -30,6 +32,7 @@ const RestaurantCardComponent = ({
     restaurant,
     onPress,
     onBookmark,
+    onAddToCart,
     variant = 'grid',
 }: RestaurantCardProps) => {
     const isFeatured = variant === 'featured';
@@ -137,6 +140,26 @@ const RestaurantCardComponent = ({
                         <Text style={styles.offerTextFeatured}>{restaurant.offer.text}</Text>
                     </View>
                 )}
+
+                {/* Add to Cart Button - Show if restaurant has products */}
+                {!isFeatured && restaurant.products && restaurant.products.length > 0 && onAddToCart && (
+                    <Pressable
+                        style={styles.addToCartBtn}
+                                onPress={(e) => {
+                                    e.stopPropagation?.();
+                                    // Add first product or show product selection
+                                    if (restaurant.products && restaurant.products.length === 1) {
+                                        onAddToCart && onAddToCart(restaurant.products[0]);
+                                    } else if (restaurant.products && restaurant.products.length > 1) {
+                                        // If multiple products, navigate to restaurant detail or show menu
+                                        onPress(restaurant);
+                                    }
+                                }}
+                    >
+                        <Ionicons name="add" size={16} color={Colors.textWhite} />
+                        <Text style={styles.addToCartText}>Add</Text>
+                    </Pressable>
+                )}
             </View>
         </Pressable>
     );
@@ -215,9 +238,8 @@ const styles = StyleSheet.create({
         fontSize: FontSize.xxs,
         color: Colors.textWhite,
         marginTop: 2,
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
+        // @ts-ignore - textShadow shorthand for web compatibility
+        textShadow: '0 1px 3px rgba(0,0,0,0.5)',
     },
     deliveryTimeOnImage: {
         position: 'absolute',
@@ -296,5 +318,21 @@ const styles = StyleSheet.create({
         fontSize: FontSize.sm,
         color: Colors.offerBlue,
         fontWeight: FontWeight.medium,
+    },
+    addToCartBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.primary,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
+        borderRadius: BorderRadius.sm,
+        marginTop: Spacing.sm,
+        gap: 4,
+    },
+    addToCartText: {
+        fontSize: FontSize.sm,
+        fontWeight: FontWeight.bold,
+        color: Colors.textWhite,
     },
 });

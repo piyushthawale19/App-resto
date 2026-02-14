@@ -146,9 +146,8 @@ const styles = StyleSheet.create({
         fontSize: FontSize.h2,
         fontWeight: FontWeight.bold,
         color: Colors.textWhite,
-        textShadowColor: 'rgba(0,0,0,0.3)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
+        // @ts-ignore - textShadow shorthand for web compatibility
+        textShadow: '0 1px 4px rgba(0,0,0,0.3)',
     },
     heroSubtitle: {
         fontSize: FontSize.base,

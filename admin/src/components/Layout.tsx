@@ -2,12 +2,13 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Package, ShoppingCart, Truck, MapPin,
-    Tag, Ticket, Users as UsersIcon, Settings, LogOut, ChefHat,
+    Tag, Ticket, Users as UsersIcon, Settings, LogOut, ChefHat, FolderTree,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'order_admin', 'delivery_admin'] },
+    { to: '/categories', icon: FolderTree, label: 'Categories', roles: ['super_admin'] },
     { to: '/products', icon: Package, label: 'Products', roles: ['super_admin'] },
     { to: '/orders', icon: ShoppingCart, label: 'Orders', roles: ['super_admin', 'order_admin'] },
     { to: '/delivery-boys', icon: Truck, label: 'Delivery Boys', roles: ['super_admin', 'delivery_admin'] },
