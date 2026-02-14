@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AdminLogin from './pages/AdminLogin';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import Categories from './pages/Categories';
 import Orders from './pages/Orders';
 import DeliveryBoys from './pages/DeliveryBoys';
 import LiveTracking from './pages/LiveTracking';
@@ -26,6 +27,7 @@ function AppRoutes() {
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
                 <Route path="products" element={<Products />} />
+                <Route path="categories" element={<Categories />} />
                 <Route path="orders" element={<Orders />} />
                 <Route path="delivery-boys" element={<DeliveryBoys />} />
                 <Route path="live-tracking" element={<LiveTracking />} />

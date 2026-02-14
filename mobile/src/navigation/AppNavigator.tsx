@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import RoleSelectionScreen from '../screens/RoleSelectionScreen';
+import LoginScreen from '../screens/LoginScreen';
 
 // Customer Screens
 import {
@@ -99,58 +100,61 @@ const TabNavigator = () => (
 );
 
 // Delivery Partner Tab Navigator
-const DeliveryTabNavigator = () => (
-    <Tab.Navigator
-        screenOptions={{
-            headerShown: false,
-            tabBarActiveTintColor: Colors.primary.maroon,
-            tabBarInactiveTintColor: Colors.text.light,
-            tabBarStyle: {
-                height: 60,
-                paddingBottom: 8,
-                paddingTop: 4,
-                borderTopWidth: 0.5,
-                borderTopColor: Colors.border,
-                backgroundColor: Colors.background.white,
-            },
-            tabBarLabelStyle: {
-                fontSize: FontSize.xs,
-                fontWeight: '600',
-            },
-        }}
-    >
-        <Tab.Screen 
-            name="DeliveryOrders" 
-            component={DeliveryOrdersScreen}
-            options={{
-                tabBarLabel: 'Orders',
-                tabBarIcon: ({ color, size }) => (
-                    <Ionicons name="list" size={size} color={color} />
-                ),
+const DeliveryTabNavigator = () => {
+    const DeliveryTab = createBottomTabNavigator();
+    return (
+        <DeliveryTab.Navigator
+            screenOptions={{
+                headerShown: false,
+                tabBarActiveTintColor: Colors.primary.maroon,
+                tabBarInactiveTintColor: Colors.text.light,
+                tabBarStyle: {
+                    height: 60,
+                    paddingBottom: 8,
+                    paddingTop: 4,
+                    borderTopWidth: 0.5,
+                    borderTopColor: Colors.border,
+                    backgroundColor: Colors.background.white,
+                },
+                tabBarLabelStyle: {
+                    fontSize: FontSize.xs,
+                    fontWeight: '600',
+                },
             }}
-        />
-        <Tab.Screen 
-            name="DeliveryEarnings" 
-            component={DeliveryEarningsScreen}
-            options={{
-                tabBarLabel: 'Earnings',
-                tabBarIcon: ({ color, size }) => (
-                    <Ionicons name="wallet" size={size} color={color} />
-                ),
-            }}
-        />
-        <Tab.Screen 
-            name="DeliveryProfile" 
-            component={DeliveryProfileScreen}
-            options={{
-                tabBarLabel: 'Profile',
-                tabBarIcon: ({ color, size }) => (
-                    <Ionicons name="person" size={size} color={color} />
-                ),
-            }}
-        />
-    </Tab.Navigator>
-);
+        >
+            <DeliveryTab.Screen 
+                name="DeliveryOrders" 
+                component={DeliveryOrdersScreen}
+                options={{
+                    tabBarLabel: 'Orders',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="list" size={size} color={color} />
+                    ),
+                }}
+            />
+            <DeliveryTab.Screen 
+                name="DeliveryEarnings" 
+                component={DeliveryEarningsScreen}
+                options={{
+                    tabBarLabel: 'Earnings',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="wallet" size={size} color={color} />
+                    ),
+                }}
+            />
+            <DeliveryTab.Screen 
+                name="DeliveryProfile" 
+                component={DeliveryProfileScreen}
+                options={{
+                    tabBarLabel: 'Profile',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="person" size={size} color={color} />
+                    ),
+                }}
+            />
+        </DeliveryTab.Navigator>
+    );
+};
 
 export const AppNavigator = () => {
     const { loading, isAuthenticated, appUser, needsRoleSelection, setUserRole } = useAuth();
@@ -163,8 +167,13 @@ export const AppNavigator = () => {
         );
     }
 
+    // If user is not authenticated, show login screen
+    if (!isAuthenticated) {
+        return <LoginScreen />;
+    }
+
     // If user needs to select role, show role selection screen
-    if (isAuthenticated && needsRoleSelection) {
+    if (needsRoleSelection) {
         return (
             <RoleSelectionScreen 
                 onSelectRole={(role) => {

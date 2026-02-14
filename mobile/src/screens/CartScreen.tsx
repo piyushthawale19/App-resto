@@ -27,26 +27,60 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const CartScreen = () => {
     const navigation = useNavigation<NavigationProp>();
-    const { cart, cartTotal, removeFromCart, updateQuantity, placeOrder, clearCart, settings } = useApp();
+    const { cart, cartTotal, removeFromCart, updateQuantity, placeOrder, clearCart, settings, validateCoupon } = useApp();
     const { isAuthenticated } = useAuth();
     const { showSuccess, showError } = useToast();
 
     const [couponCode, setCouponCode] = useState('');
     const [couponApplied, setCouponApplied] = useState(false);
+    const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
     const [discount, setDiscount] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
     const [loading, setLoading] = useState(false);
 
-    const deliveryFee = settings?.deliveryFee || 30;
-    const isFreeDelivery = cartTotal >= (settings?.freeDeliveryAbove || 500);
+    const deliveryFee = settings?.deliveryFee ?? 0;
+    const freeDeliveryAbove = settings?.freeDeliveryAbove ?? 0;
+    const isFreeDelivery = cartTotal >= freeDeliveryAbove;
     const finalAmount = cartTotal + (isFreeDelivery ? 0 : deliveryFee) - discount;
 
-    const handleApplyCoupon = () => {
-        if (!couponCode.trim()) return;
-        // Validate coupon - simplified
-        setCouponApplied(true);
-        setDiscount(50);
-        showSuccess('Coupon applied! ₹50 off');
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) {
+            showError('Please enter a coupon code');
+            return;
+        }
+        
+        try {
+            const coupon = await validateCoupon(couponCode);
+            if (!coupon) {
+                showError('Invalid or expired coupon code');
+                return;
+            }
+            
+            // Calculate discount
+            let calculatedDiscount = 0;
+            if (coupon.discountPercent) {
+                calculatedDiscount = (cartTotal * coupon.discountPercent) / 100;
+                if (coupon.maxDiscount && calculatedDiscount > coupon.maxDiscount) {
+                    calculatedDiscount = coupon.maxDiscount;
+                }
+            } else if (coupon.discountFlat) {
+                calculatedDiscount = coupon.discountFlat;
+            }
+            
+            setDiscount(calculatedDiscount);
+            setCouponApplied(true);
+            setAppliedCoupon({ code: coupon.code, discount: calculatedDiscount });
+            showSuccess(`Coupon applied! ₹${Math.round(calculatedDiscount)} off`);
+        } catch (error) {
+            showError('Failed to validate coupon. Please try again.');
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setCouponApplied(false);
+        setAppliedCoupon(null);
+        setDiscount(0);
+        setCouponCode('');
     };
 
     const handlePlaceOrder = async () => {
@@ -66,8 +100,8 @@ export const CartScreen = () => {
                 const orderId = await placeOrder({
                     paymentMethod: 'cod',
                     paymentStatus: 'pending',
-                    discount,
-                    couponCode: couponApplied ? couponCode : undefined,
+                    discount: Math.round(discount),
+                    couponCode: appliedCoupon?.code,
                     deliveryAddress: {
                         label: 'Home',
                         fullAddress: 'Select delivery address',
@@ -160,7 +194,7 @@ export const CartScreen = () => {
                         />
                         <Pressable
                             style={[styles.couponBtn, couponApplied && styles.couponBtnApplied]}
-                            onPress={couponApplied ? () => { setCouponApplied(false); setDiscount(0); setCouponCode(''); } : handleApplyCoupon}
+                            onPress={couponApplied ? handleRemoveCoupon : handleApplyCoupon}
                         >
                             <Text style={styles.couponBtnText}>{couponApplied ? 'Remove' : 'Apply'}</Text>
                         </Pressable>
@@ -201,10 +235,10 @@ export const CartScreen = () => {
                             {isFreeDelivery ? 'FREE' : `₹${deliveryFee}`}
                         </Text>
                     </View>
-                    {discount > 0 && (
+                    {discount > 0 && appliedCoupon && (
                         <View style={styles.billRow}>
-                            <Text style={styles.billLabel}>Discount</Text>
-                            <Text style={[styles.billValue, { color: Colors.status.success }]}>-₹{discount}</Text>
+                            <Text style={styles.billLabel}>Discount ({appliedCoupon.code})</Text>
+                            <Text style={[styles.billValue, { color: Colors.status.success }]}>-₹{Math.round(discount)}</Text>
                         </View>
                     )}
                     <View style={[styles.billRow, styles.totalRow]}>

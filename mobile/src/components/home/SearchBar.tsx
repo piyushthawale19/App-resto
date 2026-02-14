@@ -41,7 +41,11 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.md + 2,
         borderWidth: 1,
         borderColor: Colors.border,
-        ...Shadow.sm,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 3,
+        elevation: 2,
     },
     placeholder: {
         flex: 1,

@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Product } from '../types';
+import { Product, Category } from '../types';
 import { Plus, Trash2, Edit, Search, X } from 'lucide-react';
 
 export default function Products() {
     const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const [categoriesLoading, setCategoriesLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editProduct, setEditProduct] = useState<Product | null>(null);
     const [form, setForm] = useState({
-        name: '', price: '', offerPrice: '', description: '', category: 'Main Course',
+        name: '', price: '', offerPrice: '', description: '', category: '',
         imageUrl: '', isVeg: true, preparationTime: '',
     });
 
@@ -21,6 +23,30 @@ export default function Products() {
             setProducts(loaded);
             setLoading(false);
         });
+        return unsub;
+    }, []);
+
+    // ─── Subscribe to Categories ───
+    useEffect(() => {
+        const unsub = onSnapshot(
+            query(collection(db, 'categories'), orderBy('order', 'asc')),
+            (snap) => {
+                const loaded = snap.docs.map((d) => ({ ...d.data(), id: d.id } as Category));
+                setCategories(loaded);
+                setCategoriesLoading(false);
+                // Set default category if form is empty and categories are loaded
+                setForm(prev => {
+                    if (!prev.category && loaded.length > 0) {
+                        return { ...prev, category: loaded[0].name };
+                    }
+                    return prev;
+                });
+            },
+            (error) => {
+                console.error('Error loading categories:', error);
+                setCategoriesLoading(false);
+            }
+        );
         return unsub;
     }, []);
 
@@ -53,7 +79,8 @@ export default function Products() {
     };
 
     const resetForm = () => {
-        setForm({ name: '', price: '', offerPrice: '', description: '', category: 'Main Course', imageUrl: '', isVeg: true, preparationTime: '' });
+        const defaultCategory = categories.length > 0 ? categories[0].name : '';
+        setForm({ name: '', price: '', offerPrice: '', description: '', category: defaultCategory, imageUrl: '', isVeg: true, preparationTime: '' });
         setEditProduct(null);
         setShowForm(false);
     };
@@ -131,11 +158,28 @@ export default function Products() {
                                 <input className="w-full border rounded-lg px-3 py-2" placeholder="Offer Price (₹)" type="number" value={form.offerPrice} onChange={e => setForm({ ...form, offerPrice: e.target.value })} />
                             </div>
                             <textarea className="w-full border rounded-lg px-3 py-2" placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} required />
-                            <select className="w-full border rounded-lg px-3 py-2" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} title="Select category" aria-label="Select category">
-                                {['Main Course', 'Rice & Biryani', 'Starters', 'Breads', 'Desserts', 'Beverages', 'Snacks'].map(c => (
-                                    <option key={c}>{c}</option>
-                                ))}
+                            <select 
+                                className="w-full border rounded-lg px-3 py-2" 
+                                value={form.category} 
+                                onChange={e => setForm({ ...form, category: e.target.value })} 
+                                title="Select category" 
+                                aria-label="Select category"
+                                required
+                                disabled={categoriesLoading || categories.length === 0}
+                            >
+                                {categoriesLoading ? (
+                                    <option>Loading categories...</option>
+                                ) : categories.length === 0 ? (
+                                    <option>No categories available. Please add categories first.</option>
+                                ) : (
+                                    categories.map(cat => (
+                                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                    ))
+                                )}
                             </select>
+                            {categories.length === 0 && !categoriesLoading && (
+                                <p className="text-xs text-amber-600">⚠️ No categories found. Please add categories first.</p>
+                            )}
                             <input className="w-full border rounded-lg px-3 py-2" placeholder="Image URL" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} required />
                             <input className="w-full border rounded-lg px-3 py-2" placeholder="Prep Time (min)" type="number" value={form.preparationTime} onChange={e => setForm({ ...form, preparationTime: e.target.value })} />
                             <label className="flex items-center gap-2">

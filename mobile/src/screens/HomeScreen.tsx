@@ -26,7 +26,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const FILTERS = ['Great Offers', 'Pure Veg', 'Rating', 'Fast Delivery', 'Price Low to High', 'Sort'];
+// Filters are now dynamic based on available products and offers
 
 export const HomeScreen = () => {
     const navigation = useNavigation<NavigationProp>();
@@ -120,27 +120,39 @@ export const HomeScreen = () => {
                     </Animated.View>
                 )}
 
-                {/* Filters Row */}
-                <Animated.View entering={FadeInDown.delay(300)}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
-                        {FILTERS.map((filter) => (
+                {/* Filters Row - Dynamic based on offers */}
+                {offers.length > 0 && (
+                    <Animated.View entering={FadeInDown.delay(300)}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
                             <Pressable
-                                key={filter}
-                                style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
-                                onPress={() => setActiveFilter(activeFilter === filter ? null : filter)}
+                                style={[styles.filterChip, activeFilter === 'offers' && styles.filterChipActive]}
+                                onPress={() => setActiveFilter(activeFilter === 'offers' ? null : 'offers')}
                             >
                                 <Text
                                     style={[
                                         styles.filterChipText,
-                                        activeFilter === filter && styles.filterChipTextActive,
+                                        activeFilter === 'offers' && styles.filterChipTextActive,
                                     ]}
                                 >
-                                    {filter}
+                                    Great Offers
                                 </Text>
                             </Pressable>
-                        ))}
-                    </ScrollView>
-                </Animated.View>
+                            <Pressable
+                                style={[styles.filterChip, activeFilter === 'rating' && styles.filterChipActive]}
+                                onPress={() => setActiveFilter(activeFilter === 'rating' ? null : 'rating')}
+                            >
+                                <Text
+                                    style={[
+                                        styles.filterChipText,
+                                        activeFilter === 'rating' && styles.filterChipTextActive,
+                                    ]}
+                                >
+                                    Top Rated
+                                </Text>
+                            </Pressable>
+                        </ScrollView>
+                    </Animated.View>
+                )}
 
                 {/* Products Grid */}
                 <Text style={styles.sectionTitle}>

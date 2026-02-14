@@ -8,3 +8,4 @@ export { CartScreen } from "./CartScreen";
 export { LiveTrackingScreen } from "./LiveTrackingScreen";
 export { SearchScreen } from "./SearchScreen";
 export { OrderDetailScreen, AddressScreen, PaymentScreen } from "./Stubs";
+export { default as LoginScreen } from "./LoginScreen";

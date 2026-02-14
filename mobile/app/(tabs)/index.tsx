@@ -41,14 +41,7 @@ import { Colors } from '../../src/constants/colors';
 import { Spacing } from '../../src/constants/spacing';
 import { FontSize, FontWeight } from '../../src/constants/typography';
 
-// Data
-import {
-    DUMMY_CATEGORIES,
-    DUMMY_FILTERS,
-    DUMMY_BANNERS,
-    DUMMY_RESTAURANTS,
-    DUMMY_EXPLORE_ITEMS,
-} from '../../src/data/dummyData';
+// Data - Now using Firebase synced data from AppContext
 
 import type { Restaurant } from '../../src/types/restaurant';
 
@@ -56,7 +49,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function HomeScreen() {
     const router = useRouter();
-    const { cart, vegFilter, setVegFilter, productsLoading } = useApp();
+    const { cart, vegFilter, setVegFilter, productsLoading, categories, offers, products, addToCart } = useApp();
     const { user } = useAuth();
 
     // ─── State ───
@@ -68,7 +61,6 @@ export default function HomeScreen() {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [deliveryMode, setDeliveryMode] = useState<'delivery' | 'takeaway' | 'dinein'>('delivery');
     const [activeFilters, setActiveFilters] = useState<string[]>([]);
-    const [restaurants, setRestaurants] = useState<Restaurant[]>(DUMMY_RESTAURANTS);
     const [showCartBar, setShowCartBar] = useState(true);
 
     const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -100,6 +92,35 @@ export default function HomeScreen() {
         loadLocation();
         setTimeout(() => setRefreshing(false), 1200);
     }, []);
+
+    // ─── Convert products to restaurant-like structure for display ───
+    const restaurants = useMemo(() => {
+        // Group products by category to create restaurant-like cards
+        const categoryMap = new Map<string, Product[]>();
+        products.forEach(product => {
+            const cat = product.category || 'Other';
+            if (!categoryMap.has(cat)) {
+                categoryMap.set(cat, []);
+            }
+            categoryMap.get(cat)!.push(product);
+        });
+        
+        // Create restaurant-like items from categories
+        return Array.from(categoryMap.entries()).map(([category, prods]) => ({
+            id: `rest-${category}`,
+            name: category,
+            imageUrl: prods[0]?.imageUrl || '',
+            cuisines: [category],
+            rating: 4.0,
+            ratingCount: '100+',
+            deliveryTime: '20-30 mins',
+            distance: '1.5 km',
+            priceForOne: Math.round(prods.reduce((sum, p) => sum + (p.offerPrice || p.price), 0) / prods.length),
+            isFeatured: false,
+            tags: [category],
+            products: prods,
+        } as Restaurant & { products: Product[] }));
+    }, [products]);
 
     // ─── Filter restaurants ───
     const filteredRestaurants = useMemo(() => {
@@ -172,12 +193,13 @@ export default function HomeScreen() {
     // ─── Grid item renderer ───
     const renderGridItem = ({ item, index }: { item: Restaurant; index: number }) => (
         <Animated.View entering={FadeInDown.delay(index * 60).duration(400)} style={styles.gridItem}>
-            <RestaurantCard
-                restaurant={item}
-                onPress={handleRestaurantPress}
-                onBookmark={handleBookmark}
-                variant="grid"
-            />
+                            <RestaurantCard
+                                restaurant={item}
+                                onPress={handleRestaurantPress}
+                                onBookmark={handleBookmark}
+                                onAddToCart={addToCart}
+                                variant="grid"
+                            />
         </Animated.View>
     );
 
@@ -190,23 +212,44 @@ export default function HomeScreen() {
             </Animated.View>
 
             {/* Offer Banners */}
-            <Animated.View entering={FadeInDown.delay(150).duration(400)}>
-                <OfferBanner banners={DUMMY_BANNERS} />
-            </Animated.View>
+            {offers.length > 0 && (
+                <Animated.View entering={FadeInDown.delay(150).duration(400)}>
+                    <OfferBanner banners={offers.map(o => ({
+                        id: o.id,
+                        imageUrl: o.imageUrl,
+                        title: o.title,
+                        subtitle: o.description,
+                        ctaText: 'ORDER NOW →',
+                        backgroundColor: '#C41E3A',
+                    }))} />
+                </Animated.View>
+            )}
 
             {/* Category Strip */}
-            <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-                <CategoryStrip
-                    categories={DUMMY_CATEGORIES}
-                    onCategorySelect={setSelectedCategory}
-                    selectedCategory={selectedCategory}
-                />
-            </Animated.View>
+            {categories.length > 0 && (
+                <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+                    <CategoryStrip
+                        categories={categories.map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            imageUrl: c.imageUrl || '',
+                            isActive: selectedCategory === c.id,
+                        }))}
+                        onCategorySelect={setSelectedCategory}
+                        selectedCategory={selectedCategory}
+                    />
+                </Animated.View>
+            )}
 
-            {/* Filter Chips */}
+            {/* Filter Chips - Dynamic based on products */}
             <Animated.View entering={FadeInDown.delay(250).duration(400)}>
                 <FilterChips
-                    filters={DUMMY_FILTERS}
+                    filters={[
+                        { id: 'offers', label: 'Great Offers', icon: 'pricetag' },
+                        { id: 'pureveg', label: 'Pure Veg', icon: 'leaf' },
+                        { id: 'rating4', label: 'Rating 4.0+', icon: 'star' },
+                        { id: 'near_fast', label: 'Near & Fast', icon: 'flash' },
+                    ]}
                     activeFilters={activeFilters}
                     onFilterToggle={handleFilterToggle}
                 />
@@ -227,6 +270,7 @@ export default function HomeScreen() {
                                 restaurant={item}
                                 onPress={handleRestaurantPress}
                                 onBookmark={handleBookmark}
+                                onAddToCart={addToCart}
                                 variant="featured"
                             />
                         )}
@@ -234,10 +278,16 @@ export default function HomeScreen() {
                 </Animated.View>
             )}
 
-            {/* Explore More */}
-            <Animated.View entering={FadeInDown.delay(350).duration(400)}>
-                <ExploreMore items={DUMMY_EXPLORE_ITEMS} />
-            </Animated.View>
+            {/* Explore More - Using categories */}
+            {categories.length > 0 && (
+                <Animated.View entering={FadeInDown.delay(350).duration(400)}>
+                    <ExploreMore items={categories.slice(0, 4).map(c => ({
+                        id: c.id,
+                        title: c.name,
+                        imageUrl: c.imageUrl || '',
+                    }))} />
+                </Animated.View>
+            )}
 
             {/* All Restaurants label */}
             <Text style={styles.allRestaurantsTitle}>ALL RESTAURANTS</Text>

@@ -33,7 +33,7 @@ import {
     searchPlaceSuggestions,
 } from '../src/services/locationService';
 import type { SavedAddress, PlaceSuggestion } from '../src/types/address';
-import { DUMMY_SAVED_ADDRESSES } from '../src/data/dummyData';
+import { subscribeToAddresses } from '../src/services/firestoreService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,14 +44,18 @@ export default function LocationScreen() {
     // ─── State ───
     const [searchQuery, setSearchQuery] = useState('');
     const [isDetecting, setIsDetecting] = useState(false);
-    const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>(DUMMY_SAVED_ADDRESSES);
+    const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
     const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
     const [isSearching, setIsSearching] = useState(false);
-    const [recentSearches] = useState<string[]>([
-        'Shahu Colony, Talegaon',
-        'Rajgurav Colony',
-        'KFC Talegaon',
-    ]);
+    const [recentSearches] = useState<string[]>([]);
+
+    // ─── Load saved addresses from Firebase ───
+    useEffect(() => {
+        const unsubscribe = subscribeToAddresses((addresses) => {
+            setSavedAddresses(addresses);
+        });
+        return () => unsubscribe();
+    }, []);
 
     // ─── Detect GPS Location ───
     const detectCurrentLocation = useCallback(async () => {

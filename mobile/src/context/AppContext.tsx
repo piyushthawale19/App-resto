@@ -10,7 +10,7 @@ import {
     where,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Product, CartItem, Order, Offer, Category, AppSettings } from '../types';
+import { Product, CartItem, Order, Offer, Category, AppSettings, Coupon } from '../types';
 import { useAuth } from './AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -45,6 +45,9 @@ interface AppContextType {
     filteredProducts: Product[];
     // Settings
     settings: AppSettings | null;
+    // Coupons
+    coupons: Coupon[];
+    validateCoupon: (code: string) => Promise<Coupon | null>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -80,6 +83,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     // Settings
     const [settings, setSettings] = useState<AppSettings | null>(null);
+    
+    // Coupons
+    const [coupons, setCoupons] = useState<Coupon[]>([]);
 
     // ─── Load Cart from AsyncStorage ───
     useEffect(() => {
@@ -106,7 +112,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [appUser]);
 
-    // ─── Subscribe to Products ───
+    // ─── Subscribe to Products (filter available products) ───
     useEffect(() => {
         const unsubscribe = onSnapshot(
             collection(db, 'products'),
@@ -115,7 +121,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     ...(d.data() as Omit<Product, 'id'>),
                     id: d.id,
                 }));
-                setProducts(loaded);
+                // Filter out unavailable products (isAvailable === false)
+                // Products without isAvailable field are considered available
+                const availableProducts = loaded.filter(p => p.isAvailable !== false);
+                setProducts(availableProducts);
                 setProductsLoading(false);
             },
             (error) => {
@@ -203,6 +212,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return () => unsubscribe();
     }, []);
 
+    // ─── Subscribe to Active Coupons ───
+    useEffect(() => {
+        const unsubscribe = onSnapshot(
+            query(collection(db, 'coupons'), where('isActive', '==', true)),
+            (snapshot) => {
+                const loaded: Coupon[] = snapshot.docs.map((d) => ({
+                    ...(d.data() as Omit<Coupon, 'id'>),
+                    id: d.id,
+                }));
+                setCoupons(loaded);
+            },
+            () => setCoupons([])
+        );
+        return () => unsubscribe();
+    }, []);
+
     // ─── Filtered Products ───
     const filteredProducts = products.filter((p) => {
         if (vegFilter === 'veg' && !p.isVeg) return false;
@@ -258,19 +283,41 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const clearCart = useCallback(() => setCart([]), []);
 
+    // ─── Validate Coupon ───
+    const validateCoupon = async (code: string): Promise<Coupon | null> => {
+        if (!code.trim()) return null;
+        
+        const coupon = coupons.find(c => c.code.toUpperCase() === code.toUpperCase());
+        if (!coupon) return null;
+        
+        // Check if coupon is valid
+        const now = new Date();
+        const validFrom = new Date(coupon.validFrom);
+        const validTo = new Date(coupon.validTo);
+        
+        if (now < validFrom || now > validTo) return null;
+        if (!coupon.isActive) return null;
+        if (coupon.usedCount >= coupon.usageLimit) return null;
+        if (cartTotal < coupon.minOrderAmount) return null;
+        
+        return coupon;
+    };
+
     // ─── Place Order ───
     const placeOrder = async (orderData: Partial<Order>): Promise<string | null> => {
         if (!user || cart.length === 0) return null;
 
-        const deliveryFee = settings?.deliveryFee || 30;
+        const deliveryFee = settings?.deliveryFee ?? 0;
+        const freeDeliveryAbove = settings?.freeDeliveryAbove ?? 0;
+        const isFreeDelivery = cartTotal >= freeDeliveryAbove;
         const total = cartTotal;
-        const finalAmount = total + deliveryFee - (orderData.discount || 0);
+        const finalAmount = total + (isFreeDelivery ? 0 : deliveryFee) - (orderData.discount || 0);
 
         const newOrder: Omit<Order, 'id'> = {
             userId: user.uid,
             items: [...cart],
             totalAmount: total,
-            deliveryFee,
+            deliveryFee: isFreeDelivery ? 0 : deliveryFee,
             discount: orderData.discount || 0,
             finalAmount,
             status: orderData.paymentMethod === 'cod' ? 'pending' : 'pending',
@@ -349,6 +396,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setSearchQuery,
                 filteredProducts,
                 settings,
+                coupons,
+                validateCoupon,
             }}
         >
             {children}
