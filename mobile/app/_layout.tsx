@@ -12,6 +12,14 @@ export default function RootLayout() {
                     <StatusBar style="light" />
                     <Stack screenOptions={{ headerShown: false }}>
                         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                        <Stack.Screen
+                            name="location"
+                            options={{
+                                headerShown: false,
+                                presentation: 'modal',
+                                animation: 'slide_from_bottom',
+                            }}
+                        />
                         <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
                         <Stack.Screen name="tracking/[id]" options={{ headerShown: false }} />
                     </Stack>

@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
 import { Home, Search, Utensils, ShoppingCart, Menu } from 'lucide-react-native';
 
-const MAROON = '#7A0C0C';
-const GRAY = '#9CA3AF';
+const PRIMARY = '#FC8019'; // Swiggy orange
+const GRAY = '#93959F';
 
 type TabIconProps = { color: string; size: number };
 
@@ -11,19 +11,25 @@ export default function TabLayout() {
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: MAROON,
+                tabBarActiveTintColor: PRIMARY,
                 tabBarInactiveTintColor: GRAY,
                 tabBarStyle: {
                     backgroundColor: '#FFFFFF',
                     borderTopWidth: 1,
-                    borderTopColor: '#E5E7EB',
+                    borderTopColor: '#E8E8E8',
                     height: 60,
                     paddingBottom: 8,
                     paddingTop: 8,
+                    elevation: 8,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: -2 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 8,
                 },
                 tabBarLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: '500',
+                    fontSize: 11,
+                    fontWeight: '600',
+                    letterSpacing: 0.2,
                 },
             }}
         >
