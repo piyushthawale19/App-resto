@@ -8,7 +8,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
-import { AuthUser, AppUser } from '../types';
+import { AuthUser, AppUser, UserRole } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
@@ -16,9 +16,11 @@ interface AuthContextType {
     appUser: AppUser | null;
     loading: boolean;
     isAuthenticated: boolean;
+    needsRoleSelection: boolean;
     signInWithGoogleToken: (idToken: string) => Promise<User>;
     signOut: () => Promise<void>;
     updateUserProfile: (data: Partial<AppUser>) => Promise<void>;
+    setUserRole: (role: UserRole, additionalData?: Partial<AppUser>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<AuthUser>(null);
     const [appUser, setAppUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const [needsRoleSelection, setNeedsRoleSelection] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -35,6 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 await loadUserProfile(firebaseUser);
             } else {
                 setAppUser(null);
+                setNeedsRoleSelection(false);
             }
             setLoading(false);
         });
@@ -45,9 +49,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
             if (userDoc.exists()) {
-                setAppUser(userDoc.data() as AppUser);
+                const userData = userDoc.data() as AppUser;
+                setAppUser(userData);
+                // Check if role is set
+                if (!userData.role) {
+                    setNeedsRoleSelection(true);
+                } else {
+                    setNeedsRoleSelection(false);
+                }
             } else {
-                const newUser: AppUser = {
+                // New user - needs role selection
+                setNeedsRoleSelection(true);
+                const newUser: Partial<AppUser> = {
                     uid: firebaseUser.uid,
                     email: firebaseUser.email || '',
                     displayName: firebaseUser.displayName || 'User',
@@ -55,9 +68,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     addresses: [],
                     favorites: [],
                     createdAt: new Date().toISOString(),
+                    // role will be set after selection
                 };
                 await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-                setAppUser(newUser);
+                setAppUser(newUser as AppUser);
             }
         } catch (error) {
             console.error('Error loading user profile:', error);
@@ -83,6 +97,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setAppUser(prev => prev ? { ...prev, ...data } : null);
     };
 
+    const setUserRole = async (role: UserRole, additionalData?: Partial<AppUser>) => {
+        if (!user) return;
+
+        const updates: Partial<AppUser> = {
+            role,
+            ...additionalData,
+        };
+
+        // If delivery partner, create a delivery boy document
+        if (role === 'delivery_partner') {
+            const deliveryBoyData = {
+                id: user.uid,
+                name: appUser?.displayName || 'Delivery Partner',
+                phone: appUser?.phone || '',
+                email: user.email || '',
+                photoUrl: appUser?.photoURL || '',
+                vehicleType: additionalData?.vehicleType || 'bike',
+                vehicleNumber: additionalData?.vehicleNumber || '',
+                isAvailable: false,
+                isOnline: false,
+                rating: 5.0,
+                totalDeliveries: 0,
+                userId: user.uid,
+            };
+
+            await setDoc(doc(db, 'deliveryBoys', user.uid), deliveryBoyData);
+            updates.deliveryBoyId = user.uid;
+            updates.vehicleType = deliveryBoyData.vehicleType;
+            updates.vehicleNumber = deliveryBoyData.vehicleNumber;
+            updates.isAvailable = false;
+            updates.isOnline = false;
+            updates.rating = 5.0;
+            updates.totalDeliveries = 0;
+        }
+
+        await updateUserProfile(updates);
+        setNeedsRoleSelection(false);
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -90,9 +143,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 appUser,
                 loading,
                 isAuthenticated: !!user,
+                needsRoleSelection,
                 signInWithGoogleToken,
                 signOut,
                 updateUserProfile,
+                setUserRole,
             }}
         >
             {children}

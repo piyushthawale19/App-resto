@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut as fbSignOut, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
 import { AdminRole, AdminUser } from '../types';
 
@@ -34,19 +34,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (firebaseUser && ADMIN_EMAILS.includes(firebaseUser.email || '')) {
                 // Check Firestore for admin role
                 try {
-                    const adminDoc = await getDoc(doc(db, 'admins', firebaseUser.uid));
+                    const adminDocRef = doc(db, 'admins', firebaseUser.uid);
+                    const adminDoc = await getDoc(adminDocRef);
+                    
                     if (adminDoc.exists()) {
                         setAdminUser(adminDoc.data() as AdminUser);
                     } else {
-                        // Default to super_admin for matching emails
-                        setAdminUser({
+                        // Auto-create admin document for whitelisted emails
+                        const newAdminUser: AdminUser = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email || '',
                             role: 'super_admin',
                             name: firebaseUser.displayName || 'Admin',
+                        };
+                        
+                        // Write to Firestore
+                        await setDoc(adminDocRef, {
+                            ...newAdminUser,
+                            createdAt: serverTimestamp(),
                         });
+                        
+                        setAdminUser(newAdminUser);
+                        console.log('✅ Admin document created automatically');
                     }
-                } catch {
+                } catch (error) {
+                    console.error('Error setting up admin:', error);
+                    // Fallback to local state if Firestore write fails
                     setAdminUser({
                         uid: firebaseUser.uid,
                         email: firebaseUser.email || '',

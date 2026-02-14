@@ -1,11 +1,14 @@
 import React from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import RoleSelectionScreen from '../screens/RoleSelectionScreen';
 
-// Screens
+// Customer Screens
 import {
     HomeScreen,
     DiningScreen,
@@ -20,6 +23,11 @@ import {
     AddressScreen,
     PaymentScreen,
 } from '../screens';
+
+// Delivery Partner Screens
+import DeliveryOrdersScreen from '../screens/delivery/DeliveryOrdersScreen';
+import DeliveryEarningsScreen from '../screens/delivery/DeliveryEarningsScreen';
+import DeliveryProfileScreen from '../screens/delivery/DeliveryProfileScreen';
 
 export type RootStackParamList = {
     MainTabs: undefined;
@@ -51,6 +59,7 @@ const TAB_ICONS: Record<keyof TabParamList, { outline: string; filled: string }>
     More: { outline: 'grid-outline', filled: 'grid' },
 };
 
+// Customer Tab Navigator
 const TabNavigator = () => (
     <Tab.Navigator
         screenOptions={({ route }) => ({
@@ -89,22 +98,111 @@ const TabNavigator = () => (
     </Tab.Navigator>
 );
 
-export const AppNavigator = () => (
-    <NavigationContainer>
-        <Stack.Navigator
-            screenOptions={{
-                headerShown: false,
-                animation: 'slide_from_right',
+// Delivery Partner Tab Navigator
+const DeliveryTabNavigator = () => (
+    <Tab.Navigator
+        screenOptions={{
+            headerShown: false,
+            tabBarActiveTintColor: Colors.primary.maroon,
+            tabBarInactiveTintColor: Colors.text.light,
+            tabBarStyle: {
+                height: 60,
+                paddingBottom: 8,
+                paddingTop: 4,
+                borderTopWidth: 0.5,
+                borderTopColor: Colors.border,
+                backgroundColor: Colors.background.white,
+            },
+            tabBarLabelStyle: {
+                fontSize: FontSize.xs,
+                fontWeight: '600',
+            },
+        }}
+    >
+        <Tab.Screen 
+            name="DeliveryOrders" 
+            component={DeliveryOrdersScreen}
+            options={{
+                tabBarLabel: 'Orders',
+                tabBarIcon: ({ color, size }) => (
+                    <Ionicons name="list" size={size} color={color} />
+                ),
             }}
-        >
-            <Stack.Screen name="MainTabs" component={TabNavigator} />
-            <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-            <Stack.Screen name="Cart" component={CartScreen} />
-            <Stack.Screen name="LiveTracking" component={LiveTrackingScreen} />
-            <Stack.Screen name="Search" component={SearchScreen} />
-            <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
-            <Stack.Screen name="Address" component={AddressScreen} />
-            <Stack.Screen name="Payment" component={PaymentScreen} />
-        </Stack.Navigator>
-    </NavigationContainer>
+        />
+        <Tab.Screen 
+            name="DeliveryEarnings" 
+            component={DeliveryEarningsScreen}
+            options={{
+                tabBarLabel: 'Earnings',
+                tabBarIcon: ({ color, size }) => (
+                    <Ionicons name="wallet" size={size} color={color} />
+                ),
+            }}
+        />
+        <Tab.Screen 
+            name="DeliveryProfile" 
+            component={DeliveryProfileScreen}
+            options={{
+                tabBarLabel: 'Profile',
+                tabBarIcon: ({ color, size }) => (
+                    <Ionicons name="person" size={size} color={color} />
+                ),
+            }}
+        />
+    </Tab.Navigator>
 );
+
+export const AppNavigator = () => {
+    const { loading, isAuthenticated, appUser, needsRoleSelection, setUserRole } = useAuth();
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Colors.primary.maroon} />
+            </View>
+        );
+    }
+
+    // If user needs to select role, show role selection screen
+    if (isAuthenticated && needsRoleSelection) {
+        return (
+            <RoleSelectionScreen 
+                onSelectRole={(role) => {
+                    setUserRole(role);
+                }}
+            />
+        );
+    }
+
+    // Route based on user role
+    const MainComponent = appUser?.role === 'delivery_partner' ? DeliveryTabNavigator : TabNavigator;
+
+    return (
+        <NavigationContainer>
+            <Stack.Navigator
+                screenOptions={{
+                    headerShown: false,
+                    animation: 'slide_from_right',
+                }}
+            >
+                <Stack.Screen name="MainTabs" component={MainComponent} />
+                <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+                <Stack.Screen name="Cart" component={CartScreen} />
+                <Stack.Screen name="LiveTracking" component={LiveTrackingScreen} />
+                <Stack.Screen name="Search" component={SearchScreen} />
+                <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
+                <Stack.Screen name="Address" component={AddressScreen} />
+                <Stack.Screen name="Payment" component={PaymentScreen} />
+            </Stack.Navigator>
+        </NavigationContainer>
+    );
+};
+
+const styles = StyleSheet.create({
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: Colors.background.white,
+    },
+});

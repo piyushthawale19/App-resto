@@ -26,17 +26,23 @@ export default function Products() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const data = {
+        const data: any = {
             name: form.name,
             price: Number(form.price),
-            offerPrice: form.offerPrice ? Number(form.offerPrice) : undefined,
             description: form.description,
             category: form.category,
             imageUrl: form.imageUrl,
             isVeg: form.isVeg,
-            preparationTime: form.preparationTime ? Number(form.preparationTime) : undefined,
             isAvailable: true,
         };
+
+        // Only add optional fields if they have values
+        if (form.offerPrice) {
+            data.offerPrice = Number(form.offerPrice);
+        }
+        if (form.preparationTime) {
+            data.preparationTime = Number(form.preparationTime);
+        }
 
         if (editProduct) {
             await updateDoc(doc(db, 'products', editProduct.id), data);

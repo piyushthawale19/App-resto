@@ -85,7 +85,13 @@ service cloud.firestore {
     // ========== ADMINS ==========
     match /admins/{adminId} {
       allow read: if isAdmin();
-      allow write: if isSuperAdmin();
+      // Allow users to create their own admin document on first login (bootstrap)
+      // But only if it doesn't already exist
+      allow create: if isAuthenticated() && 
+        request.auth.uid == adminId && 
+        !exists(/databases/$(database)/documents/admins/$(adminId));
+      // Only super_admin can update/delete admin documents
+      allow update, delete: if isSuperAdmin();
     }
   }
 }

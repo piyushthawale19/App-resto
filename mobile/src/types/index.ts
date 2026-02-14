@@ -143,6 +143,7 @@ export interface DeliveryBoy {
   };
   rating: number;
   totalDeliveries: number;
+  userId?: string; // Links to AppUser document
 }
 
 // ─── Tracking ───
@@ -160,15 +161,26 @@ export interface TrackingData {
 }
 
 // ─── User ───
+export type UserRole = "customer" | "delivery_partner";
+
 export interface AppUser {
   uid: string;
   email: string;
   displayName: string;
   photoURL?: string;
   phone?: string;
+  role: UserRole;
   addresses: OrderAddress[];
   favorites: string[];
   createdAt: string;
+  // Delivery partner specific fields
+  deliveryBoyId?: string; // Links to DeliveryBoy document
+  vehicleType?: "bike" | "scooter" | "bicycle";
+  vehicleNumber?: string;
+  isAvailable?: boolean;
+  isOnline?: boolean;
+  rating?: number;
+  totalDeliveries?: number;
 }
 
 // ─── Admin Roles ───
