@@ -1,31 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
-    TextInput,
     TouchableOpacity,
     Image,
     StyleSheet,
     Alert,
     ActivityIndicator,
-    KeyboardAvoidingView,
+    Animated,
+    Easing,
+    Dimensions,
     Platform,
-    ScrollView
 } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, Lock, ArrowRight, Chrome } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 
-// Only import Google auth if we have a client ID configured
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-const GOOGLE_ENABLED = !!GOOGLE_WEB_CLIENT_ID;
+const { width, height } = Dimensions.get('window');
 
+// Safely check for Google client ID
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+const GOOGLE_CONFIGURED = !!GOOGLE_WEB_CLIENT_ID;
+
+// Only initialize Google auth when client ID exists (prevents crash)
 let useGoogleAuth: () => { request: any; response: any; promptAsync: () => void };
 
-if (GOOGLE_ENABLED) {
-    // Dynamically require to avoid crash when client ID is missing
+if (GOOGLE_CONFIGURED) {
     const Google = require('expo-auth-session/providers/google');
     const WebBrowser = require('expo-web-browser');
     WebBrowser.maybeCompleteAuthSession();
@@ -42,18 +43,170 @@ if (GOOGLE_ENABLED) {
     useGoogleAuth = () => ({ request: null, response: null, promptAsync: () => { } });
 }
 
-export default function SignIn() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const { signIn, signInWithGoogleToken } = useAuth();
+// Floating food emoji component
+function FloatingEmoji({ emoji, delay, startX, duration }: { emoji: string; delay: number; startX: number; duration: number }) {
+    const translateY = useRef(new Animated.Value(height + 50)).current;
+    const opacity = useRef(new Animated.Value(0)).current;
+    const rotate = useRef(new Animated.Value(0)).current;
 
+    useEffect(() => {
+        const startAnimation = () => {
+            translateY.setValue(height + 50);
+            opacity.setValue(0);
+
+            Animated.parallel([
+                Animated.timing(translateY, {
+                    toValue: -100,
+                    duration: duration,
+                    delay: delay,
+                    easing: Easing.linear,
+                    useNativeDriver: false,
+                }),
+                Animated.sequence([
+                    Animated.timing(opacity, {
+                        toValue: 0.15,
+                        duration: 1000,
+                        delay: delay,
+                        useNativeDriver: false,
+                    }),
+                    Animated.timing(opacity, {
+                        toValue: 0.15,
+                        duration: duration - 2000,
+                        useNativeDriver: false,
+                    }),
+                    Animated.timing(opacity, {
+                        toValue: 0,
+                        duration: 1000,
+                        useNativeDriver: false,
+                    }),
+                ]),
+                Animated.timing(rotate, {
+                    toValue: 1,
+                    duration: duration,
+                    delay: delay,
+                    easing: Easing.linear,
+                    useNativeDriver: false,
+                }),
+            ]).start(() => startAnimation());
+        };
+        startAnimation();
+    }, []);
+
+    const spin = rotate.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
+
+    return (
+        <Animated.Text
+            style={[
+                styles.floatingEmoji,
+                {
+                    left: startX,
+                    transform: [{ translateY }, { rotate: spin }],
+                    opacity,
+                },
+            ]}
+        >
+            {emoji}
+        </Animated.Text>
+    );
+}
+
+export default function SignIn() {
+    const [loading, setLoading] = useState(false);
+    const { signInWithGoogleToken } = useAuth();
     const { request, response, promptAsync } = useGoogleAuth();
+
+    // Animations
+    const logoScale = useRef(new Animated.Value(0)).current;
+    const logoRotate = useRef(new Animated.Value(0)).current;
+    const cardTranslateY = useRef(new Animated.Value(60)).current;
+    const cardOpacity = useRef(new Animated.Value(0)).current;
+    const titleOpacity = useRef(new Animated.Value(0)).current;
+    const subtitleOpacity = useRef(new Animated.Value(0)).current;
+    const btnScale = useRef(new Animated.Value(0.8)).current;
+    const btnOpacity = useRef(new Animated.Value(0)).current;
+    const footerOpacity = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.sequence([
+            Animated.spring(logoScale, {
+                toValue: 1,
+                friction: 4,
+                tension: 60,
+                useNativeDriver: false,
+            }),
+            Animated.sequence([
+                Animated.timing(logoRotate, { toValue: 0.02, duration: 100, useNativeDriver: false }),
+                Animated.timing(logoRotate, { toValue: -0.02, duration: 100, useNativeDriver: false }),
+                Animated.timing(logoRotate, { toValue: 0, duration: 100, useNativeDriver: false }),
+            ]),
+        ]).start();
+
+        Animated.parallel([
+            Animated.timing(cardTranslateY, {
+                toValue: 0,
+                duration: 700,
+                delay: 300,
+                easing: Easing.out(Easing.back(1.2)),
+                useNativeDriver: false,
+            }),
+            Animated.timing(cardOpacity, {
+                toValue: 1,
+                duration: 600,
+                delay: 300,
+                useNativeDriver: false,
+            }),
+        ]).start();
+
+        Animated.timing(titleOpacity, {
+            toValue: 1, duration: 500, delay: 500, useNativeDriver: false,
+        }).start();
+
+        Animated.timing(subtitleOpacity, {
+            toValue: 1, duration: 500, delay: 650, useNativeDriver: false,
+        }).start();
+
+        Animated.parallel([
+            Animated.spring(btnScale, {
+                toValue: 1, friction: 5, tension: 80, delay: 800, useNativeDriver: false,
+            }),
+            Animated.timing(btnOpacity, {
+                toValue: 1, duration: 400, delay: 800, useNativeDriver: false,
+            }),
+        ]).start();
+
+        Animated.timing(footerOpacity, {
+            toValue: 1, duration: 500, delay: 1000, useNativeDriver: false,
+        }).start();
+
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, { toValue: 1.03, duration: 1500, useNativeDriver: false }),
+                Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: false }),
+            ])
+        ).start();
+
+        Animated.loop(
+            Animated.timing(shimmerAnim, {
+                toValue: 1, duration: 3000, easing: Easing.linear, useNativeDriver: false,
+            })
+        ).start();
+    }, []);
 
     useEffect(() => {
         if (response?.type === 'success') {
-            const { id_token } = response.params;
-            handleGoogleSignIn(id_token);
+            const token = response.params?.id_token || response.authentication?.idToken || response.authentication?.accessToken;
+            if (token) {
+                handleGoogleSignIn(token);
+            } else {
+                Alert.alert('Error', 'No authentication token received from Google');
+            }
+        } else if (response?.type === 'error') {
+            Alert.alert('Google Auth Error', response.error?.message || 'Something went wrong');
         }
     }, [response]);
 
@@ -63,130 +216,144 @@ export default function SignIn() {
             await signInWithGoogleToken(token);
             router.replace('/(tabs)');
         } catch (err: any) {
-            Alert.alert("Google Sign In Error", err.message);
+            Alert.alert('Sign In Error', err.message || 'Something went wrong');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSignIn = async () => {
-        if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+    const handleGooglePress = () => {
+        if (!GOOGLE_CONFIGURED) {
+            Alert.alert(
+                'Setup Required',
+                'Google Sign-In needs a Web Client ID.\n\nAdd this line to your mobile/.env file:\n\nEXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your_client_id\n\nThen restart the Expo server.',
+            );
             return;
         }
-        setLoading(true);
-        try {
-            await signIn(email, password);
-            router.replace('/(tabs)');
-        } catch (err: any) {
-            let message = err.message;
-            if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-                message = 'Invalid email or password';
-            }
-            Alert.alert('Login Failed', message);
-        } finally {
-            setLoading(false);
-        }
+        promptAsync();
     };
+
+    const logoSpin = logoRotate.interpolate({
+        inputRange: [-1, 1],
+        outputRange: ['-30deg', '30deg'],
+    });
+
+    const shimmerTranslate = shimmerAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-width, width],
+    });
 
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
+
             <LinearGradient
-                colors={['#7A0C0C', '#4E0A0A']}
+                colors={['#4E0A0A', '#2D0606', '#1A0303']}
                 style={styles.background}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
             />
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardView}
-            >
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <View style={styles.header}>
+            <FloatingEmoji emoji="🍛" delay={0} startX={width * 0.1} duration={8000} />
+            <FloatingEmoji emoji="🍕" delay={2000} startX={width * 0.7} duration={10000} />
+            <FloatingEmoji emoji="🍔" delay={4000} startX={width * 0.4} duration={9000} />
+            <FloatingEmoji emoji="🌮" delay={1000} startX={width * 0.85} duration={11000} />
+            <FloatingEmoji emoji="🍜" delay={3000} startX={width * 0.25} duration={7500} />
+            <FloatingEmoji emoji="🧁" delay={5000} startX={width * 0.55} duration={9500} />
+
+            <View style={styles.decorCircle1} />
+            <View style={styles.decorCircle2} />
+
+            <View style={styles.content}>
+                <Animated.View
+                    style={[
+                        styles.logoContainer,
+                        {
+                            transform: [
+                                { scale: logoScale },
+                                { rotate: logoSpin },
+                            ],
+                        },
+                    ]}
+                >
+                    <View style={styles.logoGlow} />
+                    <View style={styles.logoBorder}>
                         <Image
                             source={require('../../assets/icon.png')}
                             style={styles.logo}
-                            resizeMode="contain"
+                            resizeMode="cover"
                         />
-                        <Text style={styles.title}>Welcome Back</Text>
-                        <Text style={styles.subtitle}>Sign in to continue to Yummyfi</Text>
+                    </View>
+                </Animated.View>
+
+                <Animated.View
+                    style={[
+                        styles.card,
+                        {
+                            transform: [{ translateY: cardTranslateY }],
+                            opacity: cardOpacity,
+                        },
+                    ]}
+                >
+                    <Animated.Text style={[styles.title, { opacity: titleOpacity }]}>
+                        Welcome
+                    </Animated.Text>
+                    <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
+                        Sign in to continue to Yummyfi
+                    </Animated.Text>
+
+                    <View style={styles.decorDivider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerIcon}>🍽️</Text>
+                        <View style={styles.dividerLine} />
                     </View>
 
-                    <View style={styles.formCard}>
-                        <View style={styles.inputWrapper}>
-                            <Text style={styles.label}>Email Address</Text>
-                            <View style={styles.inputContainer}>
-                                <Mail color="#9CA3AF" size={20} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="name@example.com"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    autoCapitalize="none"
-                                    keyboardType="email-address"
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputWrapper}>
-                            <Text style={styles.label}>Password</Text>
-                            <View style={styles.inputContainer}>
-                                <Lock color="#9CA3AF" size={20} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Enter your password"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry
-                                />
-                            </View>
-                        </View>
-
+                    <Animated.View
+                        style={{
+                            transform: [{ scale: Animated.multiply(btnScale, pulseAnim) }],
+                            opacity: btnOpacity,
+                        }}
+                    >
                         <TouchableOpacity
-                            style={styles.signInButton}
-                            onPress={handleSignIn}
+                            style={styles.googleButton}
+                            onPress={handleGooglePress}
                             disabled={loading}
+                            activeOpacity={0.85}
                         >
                             {loading ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color="#4E0A0A" size="small" />
                             ) : (
                                 <>
-                                    <Text style={styles.signInButtonText}>Sign In</Text>
-                                    <ArrowRight color="#fff" size={20} />
+                                    <View style={styles.googleIconContainer}>
+                                        <Text style={styles.googleIconG}>G</Text>
+                                    </View>
+                                    <Text style={styles.googleButtonText}>Sign in with Google</Text>
                                 </>
                             )}
                         </TouchableOpacity>
+                    </Animated.View>
 
-                        {GOOGLE_ENABLED && (
-                            <>
-                                <View style={styles.divider}>
-                                    <View style={styles.dividerLine} />
-                                    <Text style={styles.dividerText}>OR</Text>
-                                    <View style={styles.dividerLine} />
-                                </View>
-
-                                <TouchableOpacity
-                                    style={styles.googleButton}
-                                    onPress={() => promptAsync()}
-                                    disabled={!request || loading}
-                                >
-                                    <Chrome color="#DB4437" size={20} />
-                                    <Text style={styles.googleButtonText}>Sign in with Google</Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
-
-                        <View style={styles.footer}>
-                            <Text style={styles.footerText}>Don't have an account? </Text>
-                            <TouchableOpacity onPress={() => router.push('/auth/sign-up')}>
-                                <Text style={styles.linkText}>Sign Up</Text>
-                            </TouchableOpacity>
-                        </View>
+                    <View style={styles.shimmerContainer}>
+                        <Animated.View
+                            style={[
+                                styles.shimmerBar,
+                                { transform: [{ translateX: shimmerTranslate }] },
+                            ]}
+                        />
                     </View>
-                </ScrollView>
-            </KeyboardAvoidingView>
+
+                    <Animated.View style={[styles.footer, { opacity: footerOpacity }]}>
+                        <Text style={styles.footerText}>Don't have an account? </Text>
+                        <TouchableOpacity onPress={() => router.push('/auth/sign-up')}>
+                            <Text style={styles.linkText}>Sign Up</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </Animated.View>
+
+                <Animated.Text style={[styles.tagline, { opacity: footerOpacity }]}>
+                    Food Like Home Style 🏠
+                </Animated.Text>
+            </View>
         </View>
     );
 }
@@ -194,133 +361,173 @@ export default function SignIn() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#4E0A0A',
+        overflow: 'hidden',
     },
     background: {
         position: 'absolute',
         left: 0,
         right: 0,
         top: 0,
-        height: '100%',
+        bottom: 0,
     },
-    keyboardView: {
+    floatingEmoji: {
+        position: 'absolute',
+        fontSize: 36,
+        zIndex: 0,
+    },
+    decorCircle1: {
+        position: 'absolute',
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: 'rgba(244, 180, 0, 0.04)',
+        top: -80,
+        right: -100,
+    },
+    decorCircle2: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: 'rgba(244, 180, 0, 0.03)',
+        bottom: -50,
+        left: -60,
+    },
+    content: {
         flex: 1,
-    },
-    scrollContent: {
-        flexGrow: 1,
         justifyContent: 'center',
-        padding: 24,
-    },
-    header: {
         alignItems: 'center',
-        marginBottom: 40,
+        paddingHorizontal: 28,
+        zIndex: 1,
+    },
+    logoContainer: {
+        marginBottom: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    logoGlow: {
+        position: 'absolute',
+        width: 140,
+        height: 140,
+        borderRadius: 70,
+        backgroundColor: 'rgba(244, 180, 0, 0.15)',
+    },
+    logoBorder: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        borderWidth: 3,
+        borderColor: '#F4B400',
+        overflow: 'hidden',
+        backgroundColor: '#4E0A0A',
     },
     logo: {
-        width: 80,
-        height: 80,
-        marginBottom: 16,
-        borderRadius: 20,
+        width: '100%',
+        height: '100%',
+    },
+    card: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 28,
+        paddingVertical: 36,
+        paddingHorizontal: 28,
+        width: '100%',
+        maxWidth: 400,
+        alignItems: 'center',
     },
     title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
+        fontSize: 30,
+        fontWeight: '800',
+        color: '#1A0303',
+        letterSpacing: -0.5,
         marginBottom: 8,
     },
     subtitle: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: 15,
+        color: '#6B7280',
+        marginBottom: 24,
+        textAlign: 'center',
     },
-    formCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        padding: 24,
-    },
-    inputWrapper: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#374151',
-        marginBottom: 8,
-        marginLeft: 4,
-    },
-    inputContainer: {
+    decorDivider: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F3F4F6',
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        height: 56,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-    input: {
-        flex: 1,
-        marginLeft: 12,
-        fontSize: 16,
-        color: '#1F2937',
-    },
-    signInButton: {
-        backgroundColor: '#7A0C0C',
-        borderRadius: 16,
-        height: 56,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        marginTop: 8,
-    },
-    signInButtonText: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    divider: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 24,
+        width: '100%',
+        marginBottom: 28,
     },
     dividerLine: {
         flex: 1,
         height: 1,
         backgroundColor: '#E5E7EB',
     },
-    dividerText: {
-        marginHorizontal: 16,
-        color: '#6B7280',
-        fontSize: 14,
-        fontWeight: '500',
+    dividerIcon: {
+        marginHorizontal: 12,
+        fontSize: 18,
     },
     googleButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#FFFFFF',
-        borderWidth: 1,
+        borderWidth: 2,
         borderColor: '#E5E7EB',
         borderRadius: 16,
-        height: 56,
-        gap: 12,
+        height: 58,
+        paddingHorizontal: 28,
+        width: '100%',
+        minWidth: 280,
+        gap: 14,
+    },
+    googleIconContainer: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    googleIconG: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#4285F4',
     },
     googleButtonText: {
         color: '#374151',
         fontSize: 16,
         fontWeight: '600',
     },
+    shimmerContainer: {
+        width: '80%',
+        height: 2,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 1,
+        overflow: 'hidden',
+        marginTop: 24,
+        marginBottom: 20,
+    },
+    shimmerBar: {
+        width: 60,
+        height: '100%',
+        backgroundColor: '#F4B400',
+        borderRadius: 1,
+    },
     footer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 24,
+        alignItems: 'center',
     },
     footerText: {
-        color: '#6B7280',
+        color: '#9CA3AF',
         fontSize: 14,
     },
     linkText: {
-        color: '#7A0C0C',
+        color: '#4E0A0A',
         fontSize: 14,
-        fontWeight: 'bold',
+        fontWeight: '700',
+    },
+    tagline: {
+        marginTop: 28,
+        color: 'rgba(244, 180, 0, 0.6)',
+        fontSize: 14,
+        fontWeight: '500',
+        letterSpacing: 1,
     },
 });
