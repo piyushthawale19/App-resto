@@ -9,6 +9,17 @@ import { ToastOverlay } from './src/components/Toast';
 import { StatusBar } from 'expo-status-bar';
 
 export default function App() {
+    React.useEffect(() => {
+        // Cleanup any legacy first-launch flag left from previous experiments
+        (async () => {
+            try {
+                const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+                await AsyncStorage.removeItem('hasSeenSignInPrompt');
+            } catch (e) {
+                // ignore
+            }
+        })();
+    }, []);
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>

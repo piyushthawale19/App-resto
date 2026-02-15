@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UserRole } from '../types';
-import { COLORS, SPACING, TYPOGRAPHY } from '../constants';
+import { Colors, Spacing } from '../constants';
 
 const { width } = Dimensions.get('window');
 
@@ -31,10 +31,10 @@ export default function RoleSelectionScreen({ onSelectRole }: Props) {
 
     return (
         <SafeAreaView style={styles.container}>
-            <LinearGradient
-                colors={[COLORS.primary, COLORS.primaryDark]}
-                style={styles.gradient}
-            >
+                <LinearGradient
+                    colors={[Colors.primary, Colors.primaryDark]}
+                    style={styles.gradient}
+                >
                 <View style={styles.content}>
                     <Text style={styles.title}>Welcome! 👋</Text>
                     <Text style={styles.subtitle}>Choose how you want to use the app</Text>
@@ -94,7 +94,7 @@ export default function RoleSelectionScreen({ onSelectRole }: Props) {
             </LinearGradient>
         </SafeAreaView>
     );
-}
+}   
 
 const styles = StyleSheet.create({
     container: {
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        padding: SPACING.lg,
+        padding: Spacing.lg,
         justifyContent: 'center',
     },
     title: {
@@ -113,29 +113,29 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#fff',
         textAlign: 'center',
-        marginBottom: SPACING.sm,
+        marginBottom: Spacing.sm,
     },
     subtitle: {
         fontSize: 16,
         color: '#fff',
         textAlign: 'center',
         opacity: 0.9,
-        marginBottom: SPACING.xl * 2,
+        marginBottom: Spacing.xl * 2,
     },
     rolesContainer: {
-        gap: SPACING.lg,
-        marginBottom: SPACING.xl,
+        gap: Spacing.lg,
+        marginBottom: Spacing.xl,
     },
     roleCard: {
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         borderRadius: 20,
-        padding: SPACING.lg,
+        padding: Spacing.lg,
         alignItems: 'center',
         borderWidth: 3,
         borderColor: 'transparent',
     },
     roleCardSelected: {
-        borderColor: COLORS.secondary,
+        borderColor: Colors.secondary,
         backgroundColor: '#fff',
         transform: [{ scale: 0.98 }],
     },
@@ -143,10 +143,10 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: COLORS.primaryLight,
+        backgroundColor: Colors.primaryLight,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: SPACING.md,
+        marginBottom: Spacing.md,
     },
     iconEmoji: {
         fontSize: 40,
@@ -154,22 +154,22 @@ const styles = StyleSheet.create({
     roleTitle: {
         fontSize: 22,
         fontWeight: '700',
-        color: COLORS.text,
-        marginBottom: SPACING.xs,
+        color: Colors.text,
+        marginBottom: Spacing.xs,
     },
     roleDescription: {
         fontSize: 14,
-        color: COLORS.textSecondary,
+        color: Colors.textSecondary,
         textAlign: 'center',
-        marginBottom: SPACING.md,
+        marginBottom: Spacing.md,
     },
     features: {
         alignItems: 'flex-start',
-        gap: SPACING.xs,
+        gap: Spacing.xs,
     },
     featureText: {
         fontSize: 13,
-        color: COLORS.textSecondary,
+        color: Colors.textSecondary,
     },
     note: {
         fontSize: 12,

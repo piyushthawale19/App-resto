@@ -1,6 +1,3 @@
-// ─── Location Selection Screen ───
-// Full-featured location picker with GPS, search, and saved addresses
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     View,
@@ -17,31 +14,28 @@ import {
     Dimensions,
     Keyboard,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
-import { Colors } from '../src/constants/colors';
-import { Spacing } from '../src/constants/spacing';
-import { FontSize, FontWeight } from '../src/constants/typography';
+import { Colors } from '../constants/colors';
+import { Spacing } from '../constants/spacing';
+import { FontSize, FontWeight } from '../constants/typography';
 
 import {
     requestLocationPermission,
-    getCurrentPosition,
-    reverseGeocode,
     getFullLocationData,
     searchPlaceSuggestions,
-} from '../src/services/locationService';
-import type { SavedAddress, PlaceSuggestion } from '../src/types/address';
-import { subscribeToAddresses } from '../src/services/firestoreService';
+} from '../services/locationService';
+import type { SavedAddress, PlaceSuggestion } from '../types/address';
+import { subscribeToAddresses } from '../services/firestoreService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function LocationScreen() {
-    const router = useRouter();
+    const navigation = useNavigation();
     const searchInputRef = useRef<TextInput>(null);
 
-    // ─── State ───
     const [searchQuery, setSearchQuery] = useState('');
     const [isDetecting, setIsDetecting] = useState(false);
     const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
@@ -49,7 +43,6 @@ export default function LocationScreen() {
     const [isSearching, setIsSearching] = useState(false);
     const [recentSearches] = useState<string[]>([]);
 
-    // ─── Load saved addresses from Firebase ───
     useEffect(() => {
         const unsubscribe = subscribeToAddresses((addresses) => {
             setSavedAddresses(addresses);
@@ -57,7 +50,6 @@ export default function LocationScreen() {
         return () => unsubscribe();
     }, []);
 
-    // ─── Detect GPS Location ───
     const detectCurrentLocation = useCallback(async () => {
         setIsDetecting(true);
         try {
@@ -74,8 +66,7 @@ export default function LocationScreen() {
 
             const locationData = await getFullLocationData();
             if (!locationData.error) {
-                // Auto-select detected location and go back
-                router.back();
+                navigation.goBack();
             } else {
                 Alert.alert('Detection Failed', 'Could not detect your location. Please try again.');
             }
@@ -84,9 +75,8 @@ export default function LocationScreen() {
             console.error('Location detection error:', error);
         }
         setIsDetecting(false);
-    }, [router]);
+    }, [navigation]);
 
-    // ─── Search ───
     const handleSearch = useCallback(async (query: string) => {
         setSearchQuery(query);
         if (query.length < 3) {
@@ -103,21 +93,16 @@ export default function LocationScreen() {
         setIsSearching(false);
     }, []);
 
-    // ─── Select Address ───
     const selectAddress = useCallback((address: SavedAddress) => {
         Keyboard.dismiss();
-        // In a real app, save selected address to context/AsyncStorage
-        router.back();
-    }, [router]);
+        navigation.goBack();
+    }, [navigation]);
 
-    // ─── Select Suggestion ───
     const selectSuggestion = useCallback((suggestion: PlaceSuggestion) => {
         Keyboard.dismiss();
-        // In a real app, forward geocode and save
-        router.back();
-    }, [router]);
+        navigation.goBack();
+    }, [navigation]);
 
-    // ─── Address type icon ───
     const getAddressIcon = (type?: string) => {
         switch (type) {
             case 'home': return 'home';
@@ -136,18 +121,16 @@ export default function LocationScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor={Colors.backgroundWhite} />
+            <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
-            {/* ─── Top Bar ─── */}
             <View style={styles.topBar}>
-                <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+                <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={12}>
                     <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
                 </Pressable>
                 <Text style={styles.topBarTitle}>Select delivery location</Text>
                 <View style={{ width: 40 }} />
             </View>
 
-            {/* ─── Search Input ─── */}
             <View style={styles.searchContainer}>
                 <View style={styles.searchInputWrap}>
                     <Ionicons name="search" size={20} color={Colors.textTertiary} style={styles.searchIcon} />
@@ -171,7 +154,6 @@ export default function LocationScreen() {
                 </View>
             </View>
 
-            {/* ─── Search Suggestions ─── */}
             {searchQuery.length >= 3 && (
                 <Animated.View entering={FadeIn.duration(200)} style={styles.suggestionsContainer}>
                     {isSearching ? (
@@ -187,7 +169,7 @@ export default function LocationScreen() {
                         </View>
                     ) : (
                         <ScrollView keyboardShouldPersistTaps="handled">
-                            {suggestions.map((s, i) => (
+                            {suggestions.map((s) => (
                                 <Pressable
                                     key={s.id}
                                     style={styles.suggestionRow}
@@ -205,14 +187,12 @@ export default function LocationScreen() {
                 </Animated.View>
             )}
 
-            {/* ─── Main Scrollable Content ─── */}
             {searchQuery.length < 3 && (
                 <ScrollView
                     style={styles.mainScroll}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* ─── Use Current Location Button ─── */}
                     <Animated.View entering={FadeInDown.delay(100).duration(400)}>
                         <Pressable
                             style={styles.detectBtn}
@@ -234,7 +214,6 @@ export default function LocationScreen() {
                         </Pressable>
                     </Animated.View>
 
-                    {/* ─── Saved Addresses ─── */}
                     <Animated.View entering={FadeInDown.delay(200).duration(400)}>
                         <Text style={styles.sectionLabel}>SAVED ADDRESSES</Text>
                         {savedAddresses.map((addr, i) => (
@@ -271,7 +250,6 @@ export default function LocationScreen() {
                         ))}
                     </Animated.View>
 
-                    {/* ─── Recent Searches ─── */}
                     <Animated.View entering={FadeInDown.delay(300).duration(400)}>
                         <Text style={styles.sectionLabel}>RECENT SEARCHES</Text>
                         {recentSearches.map((query, i) => (
@@ -286,7 +264,6 @@ export default function LocationScreen() {
                         ))}
                     </Animated.View>
 
-                    {/* ─── Add New Address ─── */}
                     <Animated.View entering={FadeInDown.delay(400).duration(400)}>
                         <Pressable style={styles.addNewBtn}>
                             <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
@@ -306,8 +283,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.background,
     },
-
-    // ─── Top Bar ───
     topBar: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -329,8 +304,6 @@ const styles = StyleSheet.create({
         fontWeight: FontWeight.semiBold,
         color: Colors.textPrimary,
     },
-
-    // ─── Search ───
     searchContainer: {
         backgroundColor: Colors.backgroundWhite,
         paddingHorizontal: Spacing.lg,
@@ -355,190 +328,34 @@ const styles = StyleSheet.create({
         color: Colors.textPrimary,
         padding: 0,
     },
-
-    // ─── Suggestions ───
-    suggestionsContainer: {
-        flex: 1,
-        backgroundColor: Colors.backgroundWhite,
-    },
-    searchingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 32,
-        gap: 8,
-    },
-    searchingText: {
-        fontSize: FontSize.base,
-        color: Colors.textSecondary,
-    },
-    noResultsRow: {
-        alignItems: 'center',
-        paddingVertical: 48,
-    },
-    noResultsText: {
-        fontSize: FontSize.lg,
-        fontWeight: FontWeight.semiBold,
-        color: Colors.textPrimary,
-        marginTop: 12,
-    },
-    noResultsSubtext: {
-        fontSize: FontSize.sm,
-        color: Colors.textTertiary,
-        marginTop: 4,
-    },
-    suggestionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: 14,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: Colors.divider,
-        gap: 12,
-    },
-    suggestionText: {
-        flex: 1,
-    },
-    suggestionTitle: {
-        fontSize: FontSize.base,
-        fontWeight: FontWeight.medium,
-        color: Colors.textPrimary,
-    },
-    suggestionDesc: {
-        fontSize: FontSize.sm,
-        color: Colors.textTertiary,
-        marginTop: 2,
-    },
-
-    // ─── Main ───
-    mainScroll: {
-        flex: 1,
-    },
-
-    // ─── Detect Location ───
-    detectBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.backgroundWhite,
-        padding: Spacing.lg,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: Colors.divider,
-    },
-    detectIconWrap: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: Colors.primaryLight,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: Spacing.md,
-    },
-    detectTextWrap: {
-        flex: 1,
-    },
-    detectTitle: {
-        fontSize: FontSize.base,
-        fontWeight: FontWeight.semiBold,
-        color: Colors.primary,
-    },
-    detectSubtitle: {
-        fontSize: FontSize.xs,
-        color: Colors.textTertiary,
-        marginTop: 2,
-    },
-
-    // ─── Section Label ───
-    sectionLabel: {
-        fontSize: FontSize.xs,
-        fontWeight: FontWeight.bold,
-        color: Colors.textTertiary,
-        letterSpacing: 1.2,
-        marginTop: Spacing.xl,
-        marginBottom: Spacing.sm,
-        marginHorizontal: Spacing.lg,
-    },
-
-    // ─── Address Row ───
-    addressRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.backgroundWhite,
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: 14,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: Colors.divider,
-    },
-    addressRowLast: {
-        borderBottomWidth: 0,
-    },
-    addressIconWrap: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: Spacing.md,
-    },
-    addressInfo: {
-        flex: 1,
-    },
-    addressLabelRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    addressLabel: {
-        fontSize: FontSize.base,
-        fontWeight: FontWeight.semiBold,
-        color: Colors.textPrimary,
-    },
-    defaultBadge: {
-        backgroundColor: Colors.primaryLight,
-        borderRadius: 4,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-    },
-    defaultBadgeText: {
-        fontSize: 9,
-        fontWeight: FontWeight.bold,
-        color: Colors.primary,
-        letterSpacing: 0.5,
-    },
-    addressFull: {
-        fontSize: FontSize.sm,
-        color: Colors.textTertiary,
-        marginTop: 3,
-        lineHeight: 18,
-    },
-
-    // ─── Recent Searches ───
-    recentRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.backgroundWhite,
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: 14,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: Colors.divider,
-        gap: 12,
-    },
-    recentText: {
-        fontSize: FontSize.base,
-        color: Colors.textPrimary,
-    },
-
-    // ─── Add New ───
-    addNewBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.backgroundWhite,
-        padding: Spacing.lg,
-        marginTop: Spacing.xl,
-        gap: 12,
-    },
-    addNewText: {
-        fontSize: FontSize.base,
-        fontWeight: FontWeight.semiBold,
-        color: Colors.primary,
-    },
+    suggestionsContainer: { flex: 1, backgroundColor: Colors.backgroundWhite },
+    searchingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 32, gap: 8 },
+    searchingText: { fontSize: FontSize.base, color: Colors.textSecondary },
+    noResultsRow: { alignItems: 'center', paddingVertical: 48 },
+    noResultsText: { fontSize: FontSize.lg, fontWeight: FontWeight.semiBold, color: Colors.textPrimary, marginTop: 12 },
+    noResultsSubtext: { fontSize: FontSize.sm, color: Colors.textTertiary, marginTop: 4 },
+    suggestionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.divider, gap: 12 },
+    suggestionText: { flex: 1 },
+    suggestionTitle: { fontSize: FontSize.md, color: Colors.textPrimary, fontWeight: FontWeight.semiBold },
+    suggestionDesc: { fontSize: FontSize.sm, color: Colors.textTertiary },
+    mainScroll: { flex: 1 },
+    detectBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.backgroundWhite, borderRadius: 12, padding: Spacing.md, margin: Spacing.md, gap: 12 },
+    detectIconWrap: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+    detectTextWrap: { flex: 1 },
+    detectTitle: { fontSize: FontSize.md, fontWeight: FontWeight.semiBold, color: Colors.textPrimary },
+    detectSubtitle: { fontSize: FontSize.sm, color: Colors.textTertiary },
+    sectionLabel: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm, fontSize: FontSize.xs, color: Colors.textTertiary },
+    addressRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.divider },
+    addressRowLast: { borderBottomWidth: 0 },
+    addressIconWrap: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md },
+    addressInfo: { flex: 1 },
+    addressLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    addressLabel: { fontSize: FontSize.md, color: Colors.textPrimary, fontWeight: FontWeight.semiBold },
+    defaultBadge: { backgroundColor: Colors.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    defaultBadgeText: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+    addressFull: { fontSize: FontSize.sm, color: Colors.textTertiary, marginTop: 4 },
+    recentRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+    recentText: { marginLeft: Spacing.md, color: Colors.textPrimary },
+    addNewBtn: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, marginHorizontal: Spacing.lg, borderRadius: 12, backgroundColor: Colors.backgroundWhite, gap: 12 },
+    addNewText: { fontSize: FontSize.md, color: Colors.primary },
 });

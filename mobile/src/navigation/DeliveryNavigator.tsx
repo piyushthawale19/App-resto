@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../constants';
+import { Colors } from '../theme';
 
 // Delivery Partner Screens
 import DeliveryOrdersScreen from '../../screens/delivery/DeliveryOrdersScreen';
@@ -15,12 +15,12 @@ export default function DeliveryNavigator() {
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: COLORS.primary,
-                tabBarInactiveTintColor: COLORS.textSecondary,
+                tabBarActiveTintColor: Colors.primary.maroon,
+                tabBarInactiveTintColor: Colors.text.secondary,
                 tabBarStyle: {
                     backgroundColor: '#fff',
                     borderTopWidth: 1,
-                    borderTopColor: COLORS.border,
+                    borderTopColor: Colors.border,
                     paddingBottom: 8,
                     paddingTop: 8,
                     height: 60,

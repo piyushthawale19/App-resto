@@ -11,6 +11,13 @@ import { auth, db } from '../config/firebase';
 import { AuthUser, AppUser, UserRole } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Admin emails (optional) - mirror admin app pattern
+const ADMIN_EMAILS = [
+    process.env.EXPO_PUBLIC_ADMIN_EMAIL_1,
+    process.env.EXPO_PUBLIC_ADMIN_EMAIL_2,
+    process.env.EXPO_PUBLIC_ADMIN_EMAIL_3,
+].filter(Boolean) as string[];
+
 interface AuthContextType {
     user: AuthUser;
     appUser: AppUser | null;
@@ -21,6 +28,9 @@ interface AuthContextType {
     signOut: () => Promise<void>;
     updateUserProfile: (data: Partial<AppUser>) => Promise<void>;
     setUserRole: (role: UserRole, additionalData?: Partial<AppUser>) => Promise<void>;
+    isAdmin: boolean;
+    guest: boolean;
+    continueAsGuest: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,15 +40,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [appUser, setAppUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [needsRoleSelection, setNeedsRoleSelection] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [guest, setGuest] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             setUser(firebaseUser);
             if (firebaseUser) {
                 await loadUserProfile(firebaseUser);
+                // Admin check: if email is whitelisted, ensure admin doc exists
+                try {
+                    const email = firebaseUser.email || '';
+                    if (email && ADMIN_EMAILS.includes(email)) {
+                        const adminRef = doc(db, 'admins', firebaseUser.uid);
+                        const adminDoc = await getDoc(adminRef);
+                        if (!adminDoc.exists()) {
+                            await setDoc(adminRef, {
+                                uid: firebaseUser.uid,
+                                email,
+                                role: 'super_admin',
+                                name: firebaseUser.displayName || 'Admin',
+                                createdAt: new Date().toISOString(),
+                            });
+                        }
+                        setIsAdmin(true);
+                    } else {
+                        setIsAdmin(false);
+                    }
+                } catch (err) {
+                    console.warn('Admin-check failed', err);
+                    setIsAdmin(false);
+                }
             } else {
                 setAppUser(null);
                 setNeedsRoleSelection(false);
+                setIsAdmin(false);
+                // Preserve guest state across sign-outs? keep as-is
             }
             setLoading(false);
         });
@@ -86,9 +123,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const signOut = async () => {
-        await firebaseSignOut(auth);
-        await AsyncStorage.clear();
-        setAppUser(null);
+        try {
+            console.log('AuthContext: signing out...');
+            await firebaseSignOut(auth);
+            // Avoid clearing entire AsyncStorage (may include Firebase persistence keys).
+            // Remove only known app keys if needed in future.
+            setAppUser(null);
+            setGuest(false);
+            setIsAdmin(false);
+            console.log('AuthContext: sign out complete');
+        } catch (err) {
+            console.warn('AuthContext: signOut failed', err);
+        }
     };
 
     const updateUserProfile = async (data: Partial<AppUser>) => {
@@ -148,6 +194,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 signOut,
                 updateUserProfile,
                 setUserRole,
+                isAdmin,
+                guest,
+                continueAsGuest: () => setGuest(true),
             }}
         >
             {children}

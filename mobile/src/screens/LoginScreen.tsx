@@ -23,6 +23,7 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
     const { signInWithGoogleToken } = useAuth();
     const [loading, setLoading] = useState(false);
+    const { continueAsGuest } = useAuth();
 
     const [request, response, promptAsync] = Google.useAuthRequest({
         clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
@@ -70,6 +71,10 @@ export default function LoginScreen() {
         }
     };
 
+    const handleSkip = () => {
+        continueAsGuest();
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <LinearGradient
@@ -115,6 +120,14 @@ export default function LoginScreen() {
                                 <Text style={styles.signInButtonText}>Continue with Google</Text>
                             </>
                         )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.skipButton}
+                        onPress={handleSkip}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.skipButtonText}>Skip for now</Text>
                     </TouchableOpacity>
 
                     {/* Terms */}
@@ -214,5 +227,15 @@ const styles = StyleSheet.create({
         marginTop: Spacing.xl,
         paddingHorizontal: Spacing.lg,
         lineHeight: 18,
+    },
+    skipButton: {
+        marginTop: Spacing.md,
+        paddingVertical: Spacing.sm,
+    },
+    skipButtonText: {
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: 14,
+        textAlign: 'center',
+        textDecorationLine: 'underline',
     },
 });
