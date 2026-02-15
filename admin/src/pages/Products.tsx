@@ -13,7 +13,7 @@ export default function Products() {
     const [showForm, setShowForm] = useState(false);
     const [editProduct, setEditProduct] = useState<Product | null>(null);
     const [form, setForm] = useState({
-        name: '', price: '', offerPrice: '', description: '', category: '',
+        name: '', price: '', discount: '', description: '', category: '',
         imageUrl: '', isVeg: true, preparationTime: '',
     });
 
@@ -52,9 +52,10 @@ export default function Products() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const basePrice = Number(form.price);
         const data: any = {
             name: form.name,
-            price: Number(form.price),
+            price: basePrice,
             description: form.description,
             category: form.category,
             imageUrl: form.imageUrl,
@@ -62,10 +63,13 @@ export default function Products() {
             isAvailable: true,
         };
 
-        // Only add optional fields if they have values
-        if (form.offerPrice) {
-            data.offerPrice = Number(form.offerPrice);
+        // Calculate offer price from discount percentage
+        if (form.discount && Number(form.discount) > 0) {
+            const discountPercent = Number(form.discount);
+            const offerPrice = Math.round(basePrice - (basePrice * discountPercent / 100));
+            data.offerPrice = offerPrice;
         }
+
         if (form.preparationTime) {
             data.preparationTime = Number(form.preparationTime);
         }
@@ -80,16 +84,23 @@ export default function Products() {
 
     const resetForm = () => {
         const defaultCategory = categories.length > 0 ? categories[0].name : '';
-        setForm({ name: '', price: '', offerPrice: '', description: '', category: defaultCategory, imageUrl: '', isVeg: true, preparationTime: '' });
+        setForm({ name: '', price: '', discount: '', description: '', category: defaultCategory, imageUrl: '', isVeg: true, preparationTime: '' });
         setEditProduct(null);
         setShowForm(false);
     };
 
     const handleEdit = (p: Product) => {
+        // Calculate discount percentage from offerPrice
+        let discountPercent = '';
+        if (p.offerPrice && p.price > 0) {
+            const discount = ((p.price - p.offerPrice) / p.price) * 100;
+            discountPercent = String(Math.round(discount));
+        }
+
         setForm({
             name: p.name,
             price: String(p.price),
-            offerPrice: p.offerPrice ? String(p.offerPrice) : '',
+            discount: discountPercent,
             description: p.description,
             category: p.category,
             imageUrl: p.imageUrl,
@@ -153,33 +164,84 @@ export default function Products() {
                         </div>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <input className="w-full border rounded-lg px-3 py-2" placeholder="Product Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+
                             <div className="grid grid-cols-2 gap-3">
-                                <input className="w-full border rounded-lg px-3 py-2" placeholder="Price (₹)" type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} required />
-                                <input className="w-full border rounded-lg px-3 py-2" placeholder="Offer Price (₹)" type="number" value={form.offerPrice} onChange={e => setForm({ ...form, offerPrice: e.target.value })} />
+                                <div>
+                                    <label className="text-xs text-gray-600 mb-1 block">Price (₹)</label>
+                                    <input
+                                        className="w-full border rounded-lg px-3 py-2"
+                                        placeholder="Original Price"
+                                        type="number"
+                                        value={form.price}
+                                        onChange={e => setForm({ ...form, price: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-600 mb-1 block">Discount (%)</label>
+                                    <input
+                                        className="w-full border rounded-lg px-3 py-2"
+                                        placeholder="e.g. 10"
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={form.discount}
+                                        onChange={e => setForm({ ...form, discount: e.target.value })}
+                                    />
+                                </div>
                             </div>
-                            <textarea className="w-full border rounded-lg px-3 py-2" placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} required />
-                            <select 
-                                className="w-full border rounded-lg px-3 py-2" 
-                                value={form.category} 
-                                onChange={e => setForm({ ...form, category: e.target.value })} 
-                                title="Select category" 
-                                aria-label="Select category"
-                                required
-                                disabled={categoriesLoading || categories.length === 0}
-                            >
-                                {categoriesLoading ? (
-                                    <option>Loading categories...</option>
-                                ) : categories.length === 0 ? (
-                                    <option>No categories available. Please add categories first.</option>
-                                ) : (
-                                    categories.map(cat => (
-                                        <option key={cat.id} value={cat.name}>{cat.name}</option>
-                                    ))
-                                )}
-                            </select>
-                            {categories.length === 0 && !categoriesLoading && (
-                                <p className="text-xs text-amber-600">⚠️ No categories found. Please add categories first.</p>
+
+                            {/* Final Price Display */}
+                            {form.price && Number(form.price) > 0 && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600">Final Price:</span>
+                                        <div className="flex items-center gap-2">
+                                            {form.discount && Number(form.discount) > 0 ? (
+                                                <>
+                                                    <span className="font-bold text-green-700">
+                                                        ₹{Math.round(Number(form.price) - (Number(form.price) * Number(form.discount) / 100))}
+                                                    </span>
+                                                    <span className="text-gray-400 line-through text-xs">₹{form.price}</span>
+                                                    <span className="bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full font-semibold">
+                                                        {form.discount}% OFF
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className="font-bold text-gray-700">₹{form.price}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             )}
+
+                            <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Category</label>
+                                <select
+                                    className="w-full border rounded-lg px-3 py-2"
+                                    value={form.category}
+                                    onChange={e => setForm({ ...form, category: e.target.value })}
+                                    title="Select category"
+                                    aria-label="Select category"
+                                    required
+                                    disabled={categoriesLoading || categories.length === 0}
+                                >
+                                    {categoriesLoading ? (
+                                        <option>Loading categories...</option>
+                                    ) : categories.length === 0 ? (
+                                        <option>No categories available</option>
+                                    ) : (
+                                        categories.map(cat => (
+                                            <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                        ))
+                                    )}
+                                </select>
+                                {categories.length === 0 && !categoriesLoading && (
+                                    <p className="text-xs text-amber-600 mt-1">⚠️ Add categories first in the Categories page</p>
+                                )}
+                            </div>
+
+                            <textarea className="w-full border rounded-lg px-3 py-2" placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} required />
                             <input className="w-full border rounded-lg px-3 py-2" placeholder="Image URL" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} required />
                             <input className="w-full border rounded-lg px-3 py-2" placeholder="Prep Time (min)" type="number" value={form.preparationTime} onChange={e => setForm({ ...form, preparationTime: e.target.value })} />
                             <label className="flex items-center gap-2">
@@ -223,8 +285,17 @@ export default function Products() {
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{p.category}</td>
                                     <td className="px-4 py-3 text-sm">
-                                        <span className="font-semibold">₹{p.offerPrice || p.price}</span>
-                                        {p.offerPrice && <span className="text-gray-400 line-through ml-2">₹{p.price}</span>}
+                                        {p.offerPrice ? (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-gray-400 line-through text-xs">₹{p.price}</span>
+                                                <span className="font-semibold text-green-600">₹{p.offerPrice}</span>
+                                                <span className="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded font-medium">
+                                                    {Math.round(((p.price - p.offerPrice) / p.price) * 100)}% OFF
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="font-semibold">₹{p.price}</span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${p.isVeg ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
