@@ -11,14 +11,12 @@ interface SearchBarProps {
     placeholder?: string;
 }
 
-const SearchBarComponent = ({ onPress, placeholder = 'Search "burger"' }: SearchBarProps) => {
+const SearchBarComponent = ({ onPress, placeholder = 'Search for dishes, restaurants...' }: SearchBarProps) => {
     return (
         <Pressable style={styles.container} onPress={onPress}>
             <View style={styles.searchRow}>
-                <Ionicons name="search" size={20} color={Colors.primary} />
+                <Ionicons name="search" size={22} color={Colors.textTertiary} />
                 <Text style={styles.placeholder}>{placeholder}</Text>
-                <View style={styles.divider} />
-                <Ionicons name="mic-outline" size={20} color={Colors.primary} />
             </View>
         </Pressable>
     );
@@ -46,14 +44,8 @@ const styles = StyleSheet.create({
     placeholder: {
         flex: 1,
         marginLeft: Spacing.md,
-        fontSize: FontSize.lg,
+        fontSize: FontSize.md,
         color: Colors.textTertiary,
         fontWeight: FontWeight.regular,
-    },
-    divider: {
-        width: 1,
-        height: 24,
-        backgroundColor: Colors.border,
-        marginHorizontal: Spacing.md,
     },
 });
