@@ -15,20 +15,31 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useApp } from '../context/AppContext';
 import { Colors, Spacing, BorderRadius, FontSize, Shadow } from '../theme';
+
+// Provide a safe fallback in case `Colors` is not yet initialized (circular import/runtime edge-case)
+const SafeColors = (typeof Colors !== 'undefined' && Colors) ? Colors : {
+    primary: { maroon: '#7A0C0C' },
+    background: { offWhite: '#F5F5F5', white: '#FFFFFF' },
+    text: { primary: '#1F2937', secondary: '#6B7280', light: '#9CA3AF', white: '#FFFFFF' },
+    status: { warning: '#F59E0B', info: '#3B82F6', success: '#10B981', error: '#EF4444' },
+    border: '#E5E7EB',
+};
+
+const C = SafeColors;
 import { Order, OrderStatus } from '../types';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: string }> = {
-    pending: { label: 'Pending', color: Colors.status.warning, icon: 'time-outline' },
-    confirmed: { label: 'Confirmed', color: Colors.status.info, icon: 'checkmark-circle-outline' },
+    pending: { label: 'Pending', color: C.status.warning, icon: 'time-outline' },
+    confirmed: { label: 'Confirmed', color: C.status.info, icon: 'checkmark-circle-outline' },
     preparing: { label: 'Preparing', color: '#8B5CF6', icon: 'flame-outline' },
-    ready: { label: 'Ready', color: Colors.status.info, icon: 'checkmark-done-outline' },
+    ready: { label: 'Ready', color: C.status.info, icon: 'checkmark-done-outline' },
     picked_up: { label: 'Picked Up', color: '#F97316', icon: 'bicycle-outline' },
-    on_the_way: { label: 'On the Way', color: Colors.status.info, icon: 'navigate-outline' },
-    delivered: { label: 'Delivered', color: Colors.status.success, icon: 'checkmark-circle' },
-    cancelled: { label: 'Cancelled', color: Colors.status.error, icon: 'close-circle' },
+    on_the_way: { label: 'On the Way', color: C.status.info, icon: 'navigate-outline' },
+    delivered: { label: 'Delivered', color: C.status.success, icon: 'checkmark-circle' },
+    cancelled: { label: 'Cancelled', color: C.status.error, icon: 'close-circle' },
 };
 
 const OrderCard = ({ order, index }: { order: Order; index: number }) => {
@@ -86,7 +97,7 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
                                 style={styles.trackBtn}
                                 onPress={() => navigation.navigate('LiveTracking', { orderId: order.id })}
                             >
-                                <Ionicons name="navigate" size={14} color={Colors.text.white} />
+                                <Ionicons name="navigate" size={14} color={C.text.white} />
                                 <Text style={styles.trackBtnText}>Track</Text>
                             </Pressable>
                         )}
@@ -122,7 +133,7 @@ export const OrdersScreen = () => {
                 }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="receipt-outline" size={80} color={Colors.text.light} />
+                        <Ionicons name="receipt-outline" size={80} color={C.text.light} />
                         <Text style={styles.emptyTitle}>No orders yet</Text>
                         <Text style={styles.emptySubtitle}>Your order history will appear here</Text>
                     </View>
@@ -133,25 +144,25 @@ export const OrdersScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background.offWhite },
+    container: { flex: 1, backgroundColor: C.background.offWhite },
     header: {
         paddingHorizontal: Spacing.lg,
         paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
         paddingBottom: Spacing.md,
-        backgroundColor: Colors.background.white,
+        backgroundColor: C.background.white,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
+        borderBottomColor: C.border,
     },
-    headerTitle: { fontSize: FontSize.xxl, fontWeight: '700', color: Colors.text.primary },
+    headerTitle: { fontSize: FontSize.xxl, fontWeight: '700', color: C.text.primary },
     listContent: { padding: Spacing.lg, paddingBottom: 100 },
     sectionTitle: {
         fontSize: FontSize.lg,
         fontWeight: '700',
-        color: Colors.text.primary,
+        color: C.text.primary,
         marginBottom: Spacing.md,
     },
     orderCard: {
-        backgroundColor: Colors.background.white,
+        backgroundColor: C.background.white,
         borderRadius: BorderRadius.lg,
         padding: Spacing.lg,
         marginBottom: Spacing.md,
@@ -164,8 +175,8 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.md,
     },
     orderIdContainer: {},
-    orderId: { fontSize: FontSize.md, fontWeight: '700', color: Colors.text.primary },
-    orderDate: { fontSize: FontSize.xs, color: Colors.text.light, marginTop: 2 },
+    orderId: { fontSize: FontSize.md, fontWeight: '700', color: C.text.primary },
+    orderDate: { fontSize: FontSize.xs, color: C.text.light, marginTop: 2 },
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -176,36 +187,36 @@ const styles = StyleSheet.create({
     },
     statusText: { fontSize: FontSize.xs, fontWeight: '700' },
     itemsList: { marginBottom: Spacing.md },
-    itemText: { fontSize: FontSize.sm, color: Colors.text.secondary, marginBottom: 2 },
-    moreItems: { fontSize: FontSize.sm, color: Colors.text.light, fontStyle: 'italic' },
+    itemText: { fontSize: FontSize.sm, color: C.text.secondary, marginBottom: 2 },
+    moreItems: { fontSize: FontSize.sm, color: C.text.light, fontStyle: 'italic' },
     orderFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: Colors.border,
+        borderTopColor: C.border,
         paddingTop: Spacing.md,
     },
-    orderTotal: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text.primary },
+    orderTotal: { fontSize: FontSize.lg, fontWeight: '700', color: C.text.primary },
     footerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     paymentBadge: {
-        backgroundColor: Colors.background.offWhite,
+        backgroundColor: C.background.offWhite,
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: BorderRadius.sm,
     },
-    paymentText: { fontSize: FontSize.xs, fontWeight: '600', color: Colors.text.secondary },
+    paymentText: { fontSize: FontSize.xs, fontWeight: '600', color: C.text.secondary },
     trackBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.primary.maroon,
+        backgroundColor: C.primary.maroon,
         paddingHorizontal: Spacing.md,
         paddingVertical: 6,
         borderRadius: BorderRadius.sm,
         gap: 4,
     },
-    trackBtnText: { color: Colors.text.white, fontSize: FontSize.sm, fontWeight: '700' },
+    trackBtnText: { color: C.text.white, fontSize: FontSize.sm, fontWeight: '700' },
     emptyContainer: { alignItems: 'center', paddingTop: 80 },
-    emptyTitle: { fontSize: FontSize.xl, fontWeight: '700', color: Colors.text.primary, marginTop: Spacing.lg },
-    emptySubtitle: { fontSize: FontSize.md, color: Colors.text.secondary, marginTop: Spacing.sm },
+    emptyTitle: { fontSize: FontSize.xl, fontWeight: '700', color: C.text.primary, marginTop: Spacing.lg },
+    emptySubtitle: { fontSize: FontSize.md, color: C.text.secondary, marginTop: Spacing.sm },
 });

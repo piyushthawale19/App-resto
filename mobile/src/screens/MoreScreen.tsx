@@ -4,6 +4,7 @@ import {
     Text,
     StyleSheet,
     ScrollView,
+    TouchableOpacity,
     Pressable,
     Platform,
     StatusBar,
@@ -13,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius, FontSize, Shadow } from '../theme';
 
 const MORE_ITEMS = [
@@ -28,9 +30,21 @@ const MORE_ITEMS = [
 export const MoreScreen = () => {
     const { signOut, isAuthenticated } = useAuth();
 
+    // Removed auto sign-out on focus so logout button works reliably
+    const handleLogout = async () => {
+        try {
+            console.log('MoreScreen: calling signOut');
+            await signOut();
+            console.log('MoreScreen: signOut resolved');
+        } catch (e) {
+            console.warn('Logout failed', e);
+            Alert.alert('Error', 'Failed to logout. Please try again.');
+        }
+    };
+
     const handleAction = (action: string) => {
         switch (action) {
-            case 'support':
+            case 'support':                     
                 Alert.alert('Support', 'Email: support@yummyfi.com\nPhone: +91-9999999999');
                 break;
             case 'about':
@@ -63,15 +77,22 @@ export const MoreScreen = () => {
                 </View>
 
                 {isAuthenticated && (
-                    <Pressable style={styles.logoutBtn} onPress={() => {
-                        Alert.alert('Logout', 'Are you sure?', [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: 'Logout', style: 'destructive', onPress: signOut },
-                        ]);
-                    }}>
+                    <TouchableOpacity
+                        style={styles.logoutBtn}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        accessibilityRole="button"
+                        onPress={() => {
+                            console.log('MoreScreen: logout pressed (showing confirm)');
+                            Alert.alert('Logout', 'Are you sure?', [
+                                { text: 'Cancel', style: 'cancel' },
+                                { text: 'Logout', style: 'destructive', onPress: handleLogout },
+                            ]);
+                        }}
+                    >
                         <Ionicons name="log-out-outline" size={20} color={Colors.status.error} />
                         <Text style={styles.logoutText}>Logout</Text>
-                    </Pressable>
+                    </TouchableOpacity>
                 )}
 
                 <Text style={styles.version}>Version 1.0.0</Text>

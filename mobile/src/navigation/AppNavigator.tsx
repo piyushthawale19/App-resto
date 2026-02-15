@@ -100,7 +100,7 @@ const TabNavigator = () => (
 );
 
 // Delivery Partner Tab Navigator
-const DeliveryTabNavigator = () => {
+function DeliveryTabNavigator() {
     const DeliveryTab = createBottomTabNavigator();
     return (
         <DeliveryTab.Navigator
@@ -122,42 +122,39 @@ const DeliveryTabNavigator = () => {
                 },
             }}
         >
-            <DeliveryTab.Screen 
-                name="DeliveryOrders" 
+            <DeliveryTab.Screen
+                name="DeliveryOrders"
                 component={DeliveryOrdersScreen}
                 options={{
                     tabBarLabel: 'Orders',
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="list" size={size} color={color} />
                     ),
-                }}
-            />
-            <DeliveryTab.Screen 
-                name="DeliveryEarnings" 
+                }} />
+            <DeliveryTab.Screen
+                name="DeliveryEarnings"
                 component={DeliveryEarningsScreen}
                 options={{
                     tabBarLabel: 'Earnings',
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="wallet" size={size} color={color} />
                     ),
-                }}
-            />
-            <DeliveryTab.Screen 
-                name="DeliveryProfile" 
+                }} />
+            <DeliveryTab.Screen
+                name="DeliveryProfile"
                 component={DeliveryProfileScreen}
                 options={{
                     tabBarLabel: 'Profile',
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="person" size={size} color={color} />
                     ),
-                }}
-            />
+                }} />
         </DeliveryTab.Navigator>
     );
-};
+}
 
 export const AppNavigator = () => {
-    const { loading, isAuthenticated, appUser, needsRoleSelection, setUserRole } = useAuth();
+    const { loading, isAuthenticated, appUser, needsRoleSelection, setUserRole, guest } = useAuth();
 
     if (loading) {
         return (
@@ -167,8 +164,8 @@ export const AppNavigator = () => {
         );
     }
 
-    // If user is not authenticated, show login screen
-    if (!isAuthenticated) {
+    // If user is not authenticated and not in guest mode, show login screen
+    if (!isAuthenticated && !guest) {
         return <LoginScreen />;
     }
 
