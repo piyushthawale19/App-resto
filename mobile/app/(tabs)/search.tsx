@@ -8,6 +8,7 @@ import {
     Pressable,
     SafeAreaView,
     Dimensions,
+    Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -22,6 +23,7 @@ export default function SearchScreen() {
     const router = useRouter();
     const { products, addToCart, favorites, toggleFavorite } = useApp();
     const [query, setQuery] = useState('');
+    const [isFocused, setIsFocused] = useState(false);
 
     const filteredProducts = products.filter(
         (p) =>
@@ -34,15 +36,24 @@ export default function SearchScreen() {
         <SafeAreaView style={styles.container}>
             {/* Search Header */}
             <View style={styles.header}>
-                <View style={styles.searchBox}>
-                    <Ionicons name="search" size={20} color="#9CA3AF" />
+                <View style={[styles.searchBox, isFocused && styles.searchBoxFocused]}>
+                    <Ionicons
+                        name="search"
+                        size={20}
+                        color={isFocused ? MAROON : "#9CA3AF"}
+                    />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search for dishes, restaurants..."
                         placeholderTextColor="#9CA3AF"
                         value={query}
                         onChangeText={setQuery}
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setIsFocused(false)}
                         autoFocus
+                        selectionColor={MAROON}
+                        underlineColorAndroid="transparent"
+                        inputMode="search"
                     />
                     {query.length > 0 && (
                         <Pressable onPress={() => setQuery('')}>
@@ -131,24 +142,41 @@ const styles = StyleSheet.create({
         backgroundColor: CREAM,
     },
     header: {
-        padding: 16,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        borderBottomColor: '#F3F4F6',
+        paddingTop: Platform.OS === 'android' ? 40 : 12, // Handle safe area properly
     },
     searchBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F3F4F6',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        height: 48,
-        gap: 8,
+        backgroundColor: '#F4F5F7',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        height: 52,
+        gap: 12,
+    },
+    searchBoxFocused: {
+        backgroundColor: '#FFFFFF',
+        borderColor: '#D1D5DB',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
     },
     searchInput: {
         flex: 1,
         fontSize: 16,
-        color: '#111827',
+        color: '#1F2937',
+        height: '100%',
+        paddingVertical: 0, // Remove default padding
+        // @ts-ignore
+        outlineStyle: 'none',
     },
     scrollView: {
         flex: 1,

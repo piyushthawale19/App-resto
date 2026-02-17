@@ -26,6 +26,7 @@ export default function OrdersScreen() {
     const { orders, ordersLoading } = useApp();
     const [filter, setFilter] = useState('All');
     const [search, setSearch] = useState('');
+    const [isFocused, setIsFocused] = useState(false);
 
     // Last 30 days only
     const thirtyDaysAgo = useMemo(() => {
@@ -69,15 +70,28 @@ export default function OrdersScreen() {
             </View>
 
             {/* Search */}
-            <View style={s.searchWrap}>
-                <Ionicons name="search" size={18} color={COLORS.gray400} />
+            <View style={[s.searchWrap, isFocused && s.searchWrapFocused]}>
+                <Ionicons
+                    name="search"
+                    size={20}
+                    color={isFocused ? COLORS.maroon : COLORS.gray400}
+                />
                 <TextInput
                     style={s.searchInput}
                     placeholder="Search orders..."
                     placeholderTextColor={COLORS.gray400}
                     value={search}
                     onChangeText={setSearch}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    selectionColor={COLORS.maroon}
+                    underlineColorAndroid="transparent"
                 />
+                {search.length > 0 && (
+                    <Pressable onPress={() => setSearch('')}>
+                        <Ionicons name="close-circle" size={20} color={COLORS.gray400} />
+                    </Pressable>
+                )}
             </View>
 
             {/* Status Chips — using ScrollView to avoid vertical stretch */}
@@ -161,10 +175,24 @@ const s = StyleSheet.create({
     headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.white },
     searchWrap: {
         flexDirection: 'row', alignItems: 'center', margin: 16, marginBottom: 8,
-        backgroundColor: COLORS.white, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-        borderWidth: 1, borderColor: COLORS.gray200,
+        backgroundColor: '#F4F5F7', borderRadius: 16, paddingHorizontal: 16, height: 52,
+        borderWidth: 1, borderColor: '#E5E7EB', gap: 12,
     },
-    searchInput: { flex: 1, marginLeft: 8, fontSize: 15, color: COLORS.black },
+    searchWrapFocused: {
+        backgroundColor: COLORS.white,
+        borderColor: '#D1D5DB',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+    searchInput: {
+        flex: 1, fontSize: 16, color: COLORS.black, height: '100%',
+        paddingVertical: 0,
+        // @ts-ignore
+        outlineStyle: 'none',
+    },
     chipScroll: { flexGrow: 0, marginBottom: 4 },
     chipRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
     chip: {
